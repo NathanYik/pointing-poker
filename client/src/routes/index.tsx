@@ -1,64 +1,32 @@
-import {
-  component$,
-  $,
-  useSignal,
-  useVisibleTask$,
-  noSerialize,
-  type NoSerialize,
-  type QwikChangeEvent
-} from '@builder.io/qwik'
-import type { DocumentHead } from '@builder.io/qwik-city'
+import { component$, $, useContext, noSerialize } from '@builder.io/qwik'
+import { type DocumentHead, useNavigate } from '@builder.io/qwik-city'
+import { CTX } from '~/root'
 
 export default component$(() => {
-  const message = useSignal('')
-  const input = useSignal('')
-  const ws = useSignal<NoSerialize<WebSocket>>()
+  const nav = useNavigate()
+  const store = useContext(CTX)
 
-  useVisibleTask$(() => {
-    ws.value = noSerialize(new WebSocket('ws://localhost:3000'))
-    if (!ws.value) return
-    ws.value.onopen = () => {
-      console.log('connected')
-    }
-    ws.value.onmessage = e => {
-      console.log(e.data)
-      message.value = e.data
-    }
+  const handleClick = $(async () => {
+    const newRoomId = Math.random().toString(36).substring(2, 13)
+    store.ws = noSerialize(new WebSocket(`ws://localhost:3000/${newRoomId}`))
+    console.log(store.ws)
+    await nav(`/${newRoomId}`)
   })
 
-  const handleClick = $(() => {
-    if (!ws.value) return
-
-    ws.value.send(input.value)
-  })
-
-  const handleChange = $((e: QwikChangeEvent<HTMLInputElement>) => {
-    if (!ws.value) return
-
-    input.value = e.target.value
-    ws.value.send(input.value)
-  })
   return (
     <>
-      <label for="message-input"></label>
-      <input
-        type="text"
-        name="message-input"
-        value={message.value}
-        onChange$={handleChange}
-      />
-      <button onClick$={handleClick}>CLick me plz</button>
-      <h1>{message.value}</h1>
+      <button onClick$={handleClick}>Create Room</button>
     </>
   )
 })
 
 export const head: DocumentHead = {
-  title: 'Welcome to Qwik',
+  title: "HP's very own pointing poker!",
   meta: [
     {
       name: 'description',
-      content: 'Qwik site description'
+      content:
+        'Awesome SEO metadata that will surely get this site many hits on Google'
     }
   ]
 }

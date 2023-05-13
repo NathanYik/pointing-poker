@@ -1,19 +1,28 @@
-Bun.serve({
+import { type Serve } from 'bun'
+
+export default {
   fetch(req, server) {
-    console.log('Received socket request')
-    if (server.upgrade(req)) return
-    return new Response('Oof failed', { status: 500 })
+    console.log(`Received socket request from ${req.url}`)
+    const roomId = new URL(req.url).pathname.split('/')[1]
+    if (server.upgrade(req, { data: { roomId } })) {
+      server.publish(roomId, `New connection ${roomId} has joined.`)
+    }
+    return new Response('Unable to establish Socket connection.', {
+      status: 400
+    })
   },
   websocket: {
     open(ws) {
-      console.log('opened')
-      ws.send('hi')
+      if (ws.data) {
+        console.log(`Opened WebSocket Connection ${ws.data?.roomId}`)
+        ws.subscribe(ws.data?.roomId)
+      }
     },
     message(ws, message) {
-      console.log(`Received incoming message: ${message}`)
-      ws.send(message)
+      console.log(
+        `Received incoming message: '${message}' from roomId ${ws.data?.roomId}`
+      )
+      ws.publish(ws.data?.roomId, ws.data?.roomId)
     }
   }
-})
-
-console.log('works?')
+} satisfies Serve
