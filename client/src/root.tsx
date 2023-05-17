@@ -1,24 +1,32 @@
 import {
-  NoSerialize,
+  type NoSerialize,
   component$,
   createContextId,
+  noSerialize,
   useContextProvider,
-  useStore
+  useStore,
 } from '@builder.io/qwik'
 import {
   QwikCityProvider,
   RouterOutlet,
-  ServiceWorkerRegister
+  ServiceWorkerRegister,
 } from '@builder.io/qwik-city'
 import { RouterHead } from './components/router-head/router-head'
 
 import './global.css'
 
-export const CTX = createContextId<{ ws: NoSerialize<WebSocket> }>('websocket')
+export const CTX = createContextId<{
+  ws: NoSerialize<WebSocket>
+  players: string[]
+}>('websocket')
 
 export default component$(() => {
-  const store = useStore<{ ws: NoSerialize<WebSocket> | undefined }>({
-    ws: undefined
+  const store = useStore<{
+    ws: NoSerialize<WebSocket> | undefined
+    players: string[]
+  }>({
+    ws: undefined,
+    players: [],
   })
   useContextProvider(CTX, store)
   /**
