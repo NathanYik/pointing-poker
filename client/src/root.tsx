@@ -2,7 +2,6 @@ import {
   type NoSerialize,
   component$,
   createContextId,
-  noSerialize,
   useContextProvider,
   useStore,
 } from '@builder.io/qwik'
@@ -15,18 +14,22 @@ import { RouterHead } from './components/router-head/router-head'
 
 import './global.css'
 
-export const CTX = createContextId<{
-  ws: NoSerialize<WebSocket>
+type PointingPokerSession = {
+  ws: NoSerialize<WebSocket> | undefined
   players: string[]
-}>('websocket')
+  playerName: string
+  playerId: string
+  error?: string
+}
+
+export const CTX = createContextId<PointingPokerSession>('websocket')
 
 export default component$(() => {
-  const store = useStore<{
-    ws: NoSerialize<WebSocket> | undefined
-    players: string[]
-  }>({
+  const store = useStore<PointingPokerSession>({
     ws: undefined,
+    playerName: '',
     players: [],
+    playerId: '',
   })
   useContextProvider(CTX, store)
   /**
