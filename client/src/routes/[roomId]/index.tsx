@@ -28,6 +28,19 @@ export default component$(() => {
       console.log(e.data)
       playerName.value = JSON.parse(e.data).playerName
     }
+    const pollId = setInterval(() => {
+      if (!store.ws) throw new Error('Failed to create websocket')
+      console.log('polling')
+      if (store.ws.readyState !== 1) return
+      store.ws.send(
+        JSON.stringify({
+          type: 'join',
+          playerName: input.value,
+          roomId: location.url.pathname.split('/')[1],
+        })
+      )
+      clearInterval(pollId)
+    }, 200)
   })
 
   const handleClick = $(() => {
@@ -37,13 +50,6 @@ export default component$(() => {
   const handleChange = $((e: QwikChangeEvent<HTMLInputElement>) => {
     input.value = e.target.value
     console.log(store)
-    store.ws?.send(
-      JSON.stringify({
-        type: 'join',
-        playerName: input.value,
-        roomId: location.url.pathname.split('/')[1],
-      })
-    )
   })
 
   return (

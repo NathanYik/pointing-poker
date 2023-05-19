@@ -1,7 +1,6 @@
-import { type Serve } from 'bun'
-import { callerSourceOrigin } from 'bun:jsc'
+import { ServerWebSocket, type Serve } from 'bun'
 
-let rooms = new Map()
+let rooms = new Map<string, Set<ServerWebSocket>>()
 
 export default {
   fetch(req, server) {
@@ -24,16 +23,24 @@ export default {
       console.log(`Received incoming message: '${message}'`)
       switch (data.type) {
         case 'create':
-          rooms.set(data.roomId, [ws])
-          const response = {
-            roomId: data.roomId,
-          }
+          const roomId = Math.random().toString(36).substring(2, 36)
+          console.log(`Creating room ${roomId}`)
+          rooms.set(roomId, new Set([ws]))
+
+          const response = { roomId }
+
+          ws.subscribe(roomId)
           ws.send(JSON.stringify(response))
+          // rooms.get(roomId)?.forEach((client) => {
+          //   client.send(JSON.stringify(response))
+          // })
+          // ws.publish(roomId, JSON.stringify(response))
           break
         case 'join':
-          console.log('Joining room')
           if (rooms.has(data.roomId)) {
-            rooms.get(data.roomId).push(ws)
+            console.log('Joining room')
+            rooms.get(data.roomId)?.add(ws)
+            console.log(rooms.get(data.roomId))
             ws.subscribe(data.roomId)
             ws.publish(
               data.roomId,
