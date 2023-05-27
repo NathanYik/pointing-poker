@@ -1,6 +1,11 @@
 import { ServerWebSocket, type Serve } from 'bun'
 
 let rooms = new Map<string, Set<ServerWebSocket>>()
+let playerPoints: Record<string, number> = {}
+
+function publish(channelId: string, message: string) {
+  rooms.get(channelId)?.forEach((client) => client.send(message))
+}
 
 export default {
   fetch(req, server) {
@@ -55,22 +60,29 @@ export default {
 
       console.log(rooms.get(ws.data['channelId']))
       // ws.subscribe(ws.data['channelId'])
+      // ws.send(
+      //   JSON.stringify({
+      //     channelId: ws.data['channelId'],
+      //     playerName: ws.data['playerName'],
+      //     players,
+      //   })
+      // )
+
       ws.send(
         JSON.stringify({
-          channelId: ws.data['channelId'],
-          playerName: ws.data['playerName'],
-          players,
+          playerId: ws.data['playerId'],
         })
       )
-      rooms.get(ws.data['channelId'])?.forEach((client) => {
-        client.send(
-          JSON.stringify({
-            channelId: ws.data?.['channelId'],
-            playerName: ws.data?.['playerName'],
-            players,
-          })
-        )
-      })
+
+      publish(
+        ws.data['channelId'],
+        JSON.stringify({
+          channelId: ws.data?.['channelId'],
+          playerName: ws.data?.['playerName'],
+          players,
+          playerPoints,
+        })
+      )
       // ws.publish(
       //   ws.data['channelId'],
       //   JSON.stringify({
@@ -79,12 +91,27 @@ export default {
       //     players,
       //   })
       // )
-      // ws.send(JSON.stringify({ playerName: ws.data['channelId'] }))
     },
     message(ws, message) {
+      if (!ws.data) return
+
       const data = JSON.parse(message as string)
       console.log(`Received incoming message: '${message}'`)
-      ws.send('message received')
+      const players = Array.from(rooms.get(ws.data['channelId']) || []).map(
+        (client) => client?.data?.['playerName']
+      )
+
+      playerPoints[ws.data['playerId']] = data.cardValue
+      ws.send(
+        JSON.stringify({
+          channelId: ws.data?.['channelId'],
+          playerName: ws.data?.['playerName'],
+          playerId: ws.data?.['playerId'],
+          players,
+          playerPoints,
+          ...data,
+        })
+      )
     },
     close(ws) {
       if (!ws.data) return
@@ -100,16 +127,15 @@ export default {
         return
       }
 
-      rooms.get(ws.data['channelId'])?.forEach((client) => {
-        client.send(
-          JSON.stringify({
-            channelId: ws.data?.['channelId'],
-            playerName: ws.data?.['playerName'],
-            playerId: ws.data?.['playerId'],
-            players,
-          })
-        )
-      })
+      publish(
+        ws.data['channelId'],
+        JSON.stringify({
+          channelId: ws.data?.['channelId'],
+          playerName: ws.data?.['playerName'],
+          playerId: ws.data?.['playerId'],
+          players,
+        })
+      )
       // ws.publish(
       //   ws.data['channelId'],
       //   JSON.stringify({

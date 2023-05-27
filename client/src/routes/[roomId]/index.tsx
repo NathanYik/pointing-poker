@@ -1,46 +1,23 @@
 import {
-  component$,
   $,
-  useSignal,
-  useContext,
-  type QwikChangeEvent,
-  useVisibleTask$,
+  component$,
   noSerialize,
+  useContext,
+  useSignal,
+  type QwikChangeEvent,
 } from '@builder.io/qwik'
 import { useLocation } from '@builder.io/qwik-city'
 import { CTX } from '~/root'
+import styles from './index.module.css'
+import Card from '~/components/card/card'
 
 export default component$(() => {
   const store = useContext(CTX)
   const message = useSignal('')
   const location = useLocation()
   const playerName = useSignal('')
+  const cardValues = useSignal([0, 1, 2, 3, 5, 8, 13, 21, 34, 55])
   const input = useSignal('')
-
-  // useVisibleTask$(() => {
-  //   console.log(store)
-  //   if (!store.ws) {
-  //     store.ws = noSerialize(new WebSocket('ws://localhost:3000'))
-  //   }
-  //   if (!store.ws) throw new Error('Failed to create websocket')
-  //   store.ws.onmessage = (e) => {
-  //     console.log(e.data)
-  //     playerName.value = JSON.parse(e.data).playerName
-  //   }
-  //   const pollId = setInterval(() => {
-  //     if (!store.ws) throw new Error('Failed to create websocket')
-  //     console.log('polling')
-  //     if (store.ws.readyState !== 1) return
-  //     store.ws.send(
-  //       JSON.stringify({
-  //         type: 'join',
-  //         playerName: input.value,
-  //         roomId: location.url.pathname.split('/')[1],
-  //       })
-  //     )
-  //     clearInterval(pollId)
-  //   }, 200)
-  // })
 
   const handleClick = $(() => {
     if (!input.value) return
@@ -55,9 +32,11 @@ export default component$(() => {
     if (!store.ws) throw new Error('Failed to create websocket')
     store.ws.onmessage = async (event) => {
       console.log(event.data)
+      console.log(store)
       store.playerName = JSON.parse(event.data).playerName
       store.players = JSON.parse(event.data).players
       store.playerId = JSON.parse(event.data).playerId
+      store.playerPoints = JSON.parse(event.data).cardValue
       store.error = JSON.parse(event.data).error
     }
   })
@@ -66,6 +45,19 @@ export default component$(() => {
     input.value = e.target.value
     console.log(store)
   })
+
+  const onClick = (cardValue: number) =>
+    $(() => {
+      console.log('clicked')
+      // playerPoints.value = cardValue
+
+      return store.ws?.send(
+        JSON.stringify({
+          playerId: store.playerId,
+          cardValue,
+        })
+      )
+    })
 
   if (store.error) {
     return <h1>{store.error}</h1>
@@ -88,16 +80,20 @@ export default component$(() => {
   }
 
   return (
-    <>
-      <h1>Welcome ${store.playerName}</h1>
-      <h2>Players:</h2>
-      <ul>
-        {store.players.map((player, index) => {
-          console.log(player)
-          console.log('hi?')
-          return <li key={index}>{player}</li>
-        })}
-      </ul>
-    </>
+    <div class={styles.gameArea}>
+      <div class={styles.playersList}>
+        <ul>
+          {store.players?.map((player, index) => (
+            <li key={index}>{player}</li>
+          ))}
+        </ul>
+      </div>
+      <div class={styles.pointingArea}>
+        {cardValues.value.map((value, index) => (
+          <Card key={index} value={value} onClick={onClick(value)} />
+        ))}
+      </div>
+      <p>{store.playerPoints[store.playerId]}</p>
+    </div>
   )
 })

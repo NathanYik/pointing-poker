@@ -5,6 +5,7 @@ import {
   noSerialize,
   // useVisibleTask$,
   type QwikChangeEvent,
+  useComputed$,
   // useSignal,
 } from '@builder.io/qwik'
 import { type DocumentHead, useNavigate } from '@builder.io/qwik-city'
@@ -13,21 +14,31 @@ import { CTX } from '~/root'
 export default component$(() => {
   const nav = useNavigate()
   const store = useContext(CTX)
+  const status = useComputed$(() => {
+    if (store.ws?.readyState === 1) return 'Connected'
+    if (store.ws?.readyState === 3) return 'Unable to open websocket'
+    return 'Not connected'
+  })
 
   // useVisibleTask$(() => {})
 
   const handleClick = $(async () => {
     if (!store.playerName) return
-
     const url = new URL('ws://localhost:3000')
     url.searchParams.set('playerName', store.playerName)
     url.searchParams.set('connectionType', 'create')
     store.ws = noSerialize(new WebSocket(url))
 
     if (!store.ws) throw new Error('Failed to create websocket')
+    console.log(store.ws)
     store.ws.onmessage = async (event) => {
       console.log(event.data)
-      store.players = JSON.parse(event.data).players
+      store.playerName = JSON.parse(event.data).playerName || store.playerName
+      store.players = JSON.parse(event.data).players || store.players
+      store.playerId = JSON.parse(event.data).playerId || store.playerId
+      store.playerPoints =
+        JSON.parse(event.data).playerPoints || store.playerPoints
+      store.error = JSON.parse(event.data).error || store.error
       await nav(`/${JSON.parse(event.data).channelId}`)
     }
   })
@@ -42,6 +53,7 @@ export default component$(() => {
             (store.playerName = e.target.value)
         )}
       />
+      <p>{status.value}</p>
     </>
   )
 })

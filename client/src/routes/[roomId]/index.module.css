@@ -1,0 +1,8 @@
+.gameArea {
+  display: flex;
+}
+
+.pointingArea {
+  display: flex;
+  flex-wrap: wrap;
+}
