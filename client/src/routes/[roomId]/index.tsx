@@ -6,7 +6,7 @@ import {
   useSignal,
   type QwikChangeEvent,
 } from '@builder.io/qwik'
-import { useLocation } from '@builder.io/qwik-city'
+import { useLocation, type DocumentHead } from '@builder.io/qwik-city'
 import { CTX } from '~/root'
 import styles from './index.module.css'
 import Card from '~/components/card/card'
@@ -32,12 +32,16 @@ export default component$(() => {
     if (!store.ws) throw new Error('Failed to create websocket')
     store.ws.onmessage = async (event) => {
       console.log(event.data)
+      console.log('firshit')
+      store.channelId = JSON.parse(event.data).channelId || store.channelId
+      store.playerName = JSON.parse(event.data).playerName || store.playerName
+      store.players = JSON.parse(event.data).players || store.players
+      store.playerId = JSON.parse(event.data).playerId || store.playerId
+      store.playerPoints =
+        JSON.parse(event.data).playerPoints || store.playerPoints
+      store.error = JSON.parse(event.data).error || store.error
       console.log(store)
-      store.playerName = JSON.parse(event.data).playerName
-      store.players = JSON.parse(event.data).players
-      store.playerId = JSON.parse(event.data).playerId
-      store.playerPoints = JSON.parse(event.data).cardValue
-      store.error = JSON.parse(event.data).error
+      console.log(!!store.error)
     }
   })
 
@@ -49,6 +53,7 @@ export default component$(() => {
   const onClick = (cardValue: number) =>
     $(() => {
       console.log('clicked')
+      console.log(store)
       // playerPoints.value = cardValue
 
       return store.ws?.send(
@@ -84,7 +89,10 @@ export default component$(() => {
       <div class={styles.playersList}>
         <ul>
           {store.players?.map((player, index) => (
-            <li key={index}>{player}</li>
+            <li key={index}>
+              {player.playerName}:{' '}
+              {store.playerPoints?.[store.channelId]?.[player.playerId]}
+            </li>
           ))}
         </ul>
       </div>
@@ -93,7 +101,18 @@ export default component$(() => {
           <Card key={index} value={value} onClick={onClick(value)} />
         ))}
       </div>
-      <p>{store.playerPoints[store.playerId]}</p>
+      <p>{store.playerPoints?.[store.channelId]?.[store.playerId]}</p>
     </div>
   )
 })
+
+export const head: DocumentHead = {
+  title: "HP's very own pointing poker!",
+  meta: [
+    {
+      name: 'description',
+      content:
+        'Awesome SEO metadata that will surely get this site many hits on Google',
+    },
+  ],
+}

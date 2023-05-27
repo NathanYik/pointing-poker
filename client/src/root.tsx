@@ -16,11 +16,12 @@ import './global.css'
 
 type PointingPokerSession = {
   ws: NoSerialize<WebSocket> | undefined
-  players: string[]
+  players: { playerId: string; playerName: string }[]
   playerName: string
   playerId: string
+  channelId: string
   error?: string
-  playerPoints: Record<string, number>
+  playerPoints: Record<string, Record<string, number>>
 }
 
 export const CTX = createContextId<PointingPokerSession>('websocket')
@@ -31,6 +32,7 @@ export default component$(() => {
     playerName: '',
     players: [],
     playerId: '',
+    channelId: '',
     playerPoints: {},
   })
   useContextProvider(CTX, store)

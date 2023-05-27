@@ -1,6 +1,4 @@
 import { component$, useContext } from '@builder.io/qwik'
-import { QwikLogo } from '../icons/qwik'
-import styles from './header.module.css'
 import { CTX } from '~/root'
 
 export default component$(() => {

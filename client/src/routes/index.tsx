@@ -30,15 +30,16 @@ export default component$(() => {
     store.ws = noSerialize(new WebSocket(url))
 
     if (!store.ws) throw new Error('Failed to create websocket')
-    console.log(store.ws)
     store.ws.onmessage = async (event) => {
       console.log(event.data)
+      store.channelId = JSON.parse(event.data).channelId || store.channelId
       store.playerName = JSON.parse(event.data).playerName || store.playerName
       store.players = JSON.parse(event.data).players || store.players
       store.playerId = JSON.parse(event.data).playerId || store.playerId
       store.playerPoints =
-        JSON.parse(event.data).playerPoints || store.playerPoints
+      JSON.parse(event.data).playerPoints || store.playerPoints
       store.error = JSON.parse(event.data).error || store.error
+      console.log(store)
       await nav(`/${JSON.parse(event.data).channelId}`)
     }
   })
