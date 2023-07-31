@@ -4,7 +4,7 @@ import {
   noSerialize,
   useContext,
   useSignal,
-  type QwikChangeEvent,
+  // type QwikChangeEvent,
 } from '@builder.io/qwik'
 import { useLocation, type DocumentHead } from '@builder.io/qwik-city'
 import { CTX } from '~/root'
@@ -18,6 +18,8 @@ export default component$(() => {
   const playerName = useSignal('')
   const cardValues = useSignal([0, 1, 2, 3, 5, 8, 13, 21, 34, 55])
   const input = useSignal('')
+  const cardsHidden = useSignal(true)
+  const error = useSignal('')
 
   const handleClick = $(() => {
     if (!input.value) return
@@ -32,77 +34,80 @@ export default component$(() => {
     if (!store.ws) throw new Error('Failed to create websocket')
     store.ws.onmessage = async (event) => {
       console.log(event.data)
-      console.log('firshit')
       store.channelId = JSON.parse(event.data).channelId || store.channelId
       store.playerName = JSON.parse(event.data).playerName || store.playerName
       store.players = JSON.parse(event.data).players || store.players
       store.playerId = JSON.parse(event.data).playerId || store.playerId
       store.playerPoints =
         JSON.parse(event.data).playerPoints || store.playerPoints
-      store.error = JSON.parse(event.data).error || store.error
-      console.log(store)
-      console.log(!!store.error)
+      store.isHost = JSON.parse(event.data).isHost || store.isHost
+      error.value = JSON.parse(event.data).error || error.value
     }
   })
 
-  const handleChange = $((e: QwikChangeEvent<HTMLInputElement>) => {
-    input.value = e.target.value
-    console.log(store)
-  })
-
   const onClick = (cardValue: number) =>
-    $(() => {
-      console.log('clicked')
-      console.log(store)
-      // playerPoints.value = cardValue
-
-      return store.ws?.send(
+    $(() =>
+      store.ws?.send(
         JSON.stringify({
           playerId: store.playerId,
           cardValue,
         })
       )
-    })
-
-  if (store.error) {
-    return <h1>{store.error}</h1>
-  }
-
-  if (!store.playerName) {
-    return (
-      <>
-        <label for="message-input">Enter your name:</label>
-        <input
-          type="text"
-          name="message-input"
-          value={message.value}
-          onChange$={handleChange}
-        />
-        <button onClick$={handleClick}>Submit</button>
-        <h1>{playerName.value}</h1>
-      </>
     )
-  }
 
   return (
-    <div class={styles.gameArea}>
-      <div class={styles.playersList}>
-        <ul>
-          {store.players?.map((player, index) => (
-            <li key={index}>
-              {player.playerName}:{' '}
-              {store.playerPoints?.[store.channelId]?.[player.playerId]}
-            </li>
-          ))}
-        </ul>
-      </div>
-      <div class={styles.pointingArea}>
-        {cardValues.value.map((value, index) => (
-          <Card key={index} value={value} onClick={onClick(value)} />
-        ))}
-      </div>
-      <p>{store.playerPoints?.[store.channelId]?.[store.playerId]}</p>
-    </div>
+    <>
+      {error.value ? (
+        <h1>{error.value}</h1>
+      ) : store.playerName ? (
+        <div class={styles['game-area']}>
+          <div class={styles['players-list']}>
+            <ul>
+              {store.players?.map((player, index) => (
+                <li key={index}>
+                  {player.playerName}:{' '}
+                  {cardsHidden.value
+                    ? 'Hidden'
+                    : store.playerPoints?.[store.channelId]?.[player.playerId]}
+                </li>
+              ))}
+            </ul>
+          </div>
+          <div class={styles['pointing-area']}>
+            <>
+              <div class={styles['cards-area']}>
+                {cardValues.value.map((value, index) => (
+                  <Card key={index} value={value} onClick={onClick(value)} />
+                ))}
+              </div>
+              <p>{store.playerPoints?.[store.channelId]?.[store.playerId]}</p>
+              {store.isHost && (
+                <>
+                  <button onClick$={() => (cardsHidden.value = false)}>
+                    Reveal Estimates
+                  </button>
+                  <button onClick$={() => (cardsHidden.value = true)}>
+                    Reset Votes
+                  </button>
+                </>
+              )}
+            </>
+          </div>
+        </div>
+      ) : (
+        <>
+          <label for="message-input">Enter your name:</label>
+          <input
+            type="text"
+            name="message-input"
+            value={message.value}
+            bind:value={input}
+          />
+          <button onClick$={handleClick}>Submit</button>
+          <h1>{playerName.value}</h1>
+        </>
+      )}
+    </>
   )
 })
 

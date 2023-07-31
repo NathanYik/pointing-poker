@@ -4,7 +4,6 @@ import {
   useContext,
   noSerialize,
   // useVisibleTask$,
-  type QwikChangeEvent,
   useComputed$,
   // useSignal,
 } from '@builder.io/qwik'
@@ -19,8 +18,6 @@ export default component$(() => {
     if (store.ws?.readyState === 3) return 'Unable to open websocket'
     return 'Not connected'
   })
-
-  // useVisibleTask$(() => {})
 
   const handleClick = $(async () => {
     if (!store.playerName) return
@@ -37,9 +34,8 @@ export default component$(() => {
       store.players = JSON.parse(event.data).players || store.players
       store.playerId = JSON.parse(event.data).playerId || store.playerId
       store.playerPoints =
-      JSON.parse(event.data).playerPoints || store.playerPoints
-      store.error = JSON.parse(event.data).error || store.error
-      console.log(store)
+        JSON.parse(event.data).playerPoints || store.playerPoints
+      store.isHost = JSON.parse(event.data).isHost || store.isHost
       await nav(`/${JSON.parse(event.data).channelId}`)
     }
   })
@@ -49,10 +45,9 @@ export default component$(() => {
       <button onClick$={handleClick}>Create Room</button>
       <input
         type="text"
-        onChange$={$(
-          (e: QwikChangeEvent<HTMLInputElement>) =>
-            (store.playerName = e.target.value)
-        )}
+        onInput$={(e: Event) =>
+          (store.playerName = (e.target as HTMLInputElement).value)
+        }
       />
       <p>{status.value}</p>
     </>

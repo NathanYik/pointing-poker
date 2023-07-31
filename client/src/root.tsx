@@ -22,6 +22,7 @@ type PointingPokerSession = {
   channelId: string
   error?: string
   playerPoints: Record<string, Record<string, number>>
+  isHost: boolean
 }
 
 export const CTX = createContextId<PointingPokerSession>('websocket')
@@ -34,6 +35,7 @@ export default component$(() => {
     playerId: '',
     channelId: '',
     playerPoints: {},
+    isHost: false,
   })
   useContextProvider(CTX, store)
   /**

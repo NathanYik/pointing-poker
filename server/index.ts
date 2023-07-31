@@ -9,6 +9,7 @@ type SocketData = {
   playerName: string
   playerId: string
   connectionType: string
+  isHost: boolean
 }
 
 let rooms = new Map<string, Set<ServerWebSocket<SocketData>>>()
@@ -25,9 +26,10 @@ Bun.serve<SocketData>({
       Math.random().toString(36).substring(2, 36)
     const playerId = Math.random().toString(36).substring(2, 36)
     const connectionType = new URL(req.url).searchParams.get('connectionType')
+    const isHost = connectionType === 'create'
 
     server.upgrade(req, {
-      data: { channelId, playerId, playerName, connectionType },
+      data: { channelId, playerId, playerName, connectionType, isHost },
     })
 
     return new Response('Unable to establish Socket connection.', {
@@ -69,6 +71,7 @@ Bun.serve<SocketData>({
           channelId: ws.data.channelId,
           playerName: ws.data.playerName,
           playerId: ws.data.playerId,
+          isHost: ws.data.isHost,
           players,
           playerPoints,
         })
@@ -99,6 +102,7 @@ Bun.serve<SocketData>({
           channelId: ws.data.channelId,
           playerName: ws.data.playerName,
           playerId: ws.data.playerId,
+          isHost: ws.data.isHost,
           players,
           playerPoints,
         })
@@ -135,6 +139,7 @@ Bun.serve<SocketData>({
         rooms.delete(ws.data.channelId)
         return
       }
+
       console.log('publishing')
       console.log(ws.data.channelId)
       rooms.get(ws.data.channelId)?.forEach((client) => {

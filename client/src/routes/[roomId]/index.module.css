@@ -1,8 +1,16 @@
-.gameArea {
+.game-area {
   display: flex;
+  width: 100%;
 }
 
-.pointingArea {
+.pointing-area {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+}
+
+.cards-area {
   display: flex;
   flex-wrap: wrap;
+  width: 100%;
 }

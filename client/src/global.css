@@ -13,6 +13,11 @@ body {
   line-height: inherit;
 }
 
+main {
+  padding: 0 80px;
+  display: block;
+}
+
 header {
   display: flex;
   flex-direction: column;
