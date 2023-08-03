@@ -1,5 +1,4 @@
 import {
-  type NoSerialize,
   component$,
   createContextId,
   useContextProvider,
@@ -11,39 +10,27 @@ import {
   ServiceWorkerRegister,
 } from '@builder.io/qwik-city'
 import { RouterHead } from './components/router-head/router-head'
+import { type PointingPokerSession } from './types/pointingPokerSession'
 
 import './global.css'
 
-type PointingPokerSession = {
-  ws: NoSerialize<WebSocket> | undefined
-  players: { playerId: string; playerName: string }[]
-  playerName: string
-  playerId: string
-  channelId: string
-  error?: string
-  playerPoints: Record<string, Record<string, number>>
-  isHost: boolean
-}
-
 export const CTX = createContextId<PointingPokerSession>('websocket')
 
+const initialPointingPokerSession: PointingPokerSession = {
+  ws: undefined,
+  playerName: '',
+  players: [],
+  playerId: '',
+  channelId: '',
+  playerPoints: {},
+  isHost: false,
+  error: undefined,
+  isHidden: true,
+}
+
 export default component$(() => {
-  const store = useStore<PointingPokerSession>({
-    ws: undefined,
-    playerName: '',
-    players: [],
-    playerId: '',
-    channelId: '',
-    playerPoints: {},
-    isHost: false,
-  })
+  const store = useStore<PointingPokerSession>(initialPointingPokerSession)
   useContextProvider(CTX, store)
-  /**
-   * The root of a QwikCity site always start with the <QwikCityProvider> component,
-   * immediately followed by the document's <head> and <body>.
-   *
-   * Dont remove the `<head>` and `<body>` elements.
-   */
 
   return (
     <QwikCityProvider>

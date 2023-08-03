@@ -8,6 +8,7 @@ import {
   // useSignal,
 } from '@builder.io/qwik'
 import { type DocumentHead, useNavigate } from '@builder.io/qwik-city'
+import { syncWebSocketData } from '~/lib/websocket'
 import { CTX } from '~/root'
 
 export default component$(() => {
@@ -28,14 +29,7 @@ export default component$(() => {
 
     if (!store.ws) throw new Error('Failed to create websocket')
     store.ws.onmessage = async (event) => {
-      console.log(event.data)
-      store.channelId = JSON.parse(event.data).channelId || store.channelId
-      store.playerName = JSON.parse(event.data).playerName || store.playerName
-      store.players = JSON.parse(event.data).players || store.players
-      store.playerId = JSON.parse(event.data).playerId || store.playerId
-      store.playerPoints =
-        JSON.parse(event.data).playerPoints || store.playerPoints
-      store.isHost = JSON.parse(event.data).isHost || store.isHost
+      syncWebSocketData(store, event)
       await nav(`/${JSON.parse(event.data).channelId}`)
     }
   })

@@ -14,6 +14,7 @@ type SocketData = {
 
 let rooms = new Map<string, Set<ServerWebSocket<SocketData>>>()
 let playerPoints: Record<string, Record<string, number>> = {}
+let isHidden = true
 
 Bun.serve<SocketData>({
   port: 3000,
@@ -74,6 +75,7 @@ Bun.serve<SocketData>({
           isHost: ws.data.isHost,
           players,
           playerPoints,
+          isHidden,
         })
       )
       ws.publish(
@@ -82,6 +84,7 @@ Bun.serve<SocketData>({
           channelId: ws.data.channelId,
           players,
           playerPoints,
+          isHidden,
         })
       )
     },
@@ -96,7 +99,16 @@ Bun.serve<SocketData>({
       )
 
       playerPoints[ws.data.channelId] = playerPoints[ws.data.channelId] || {}
-      playerPoints[ws.data.channelId][ws.data.playerId] = data.cardValue
+      playerPoints[ws.data.channelId][ws.data.playerId] =
+        data.cardValue === undefined
+          ? playerPoints[ws.data.channelId][ws.data.playerId]
+          : data.cardValue
+      isHidden = data.isHidden === undefined ? isHidden : data.isHidden
+
+      if (data.clearVotes) {
+        playerPoints[ws.data.channelId] = {}
+      }
+
       ws.send(
         JSON.stringify({
           channelId: ws.data.channelId,
@@ -105,6 +117,7 @@ Bun.serve<SocketData>({
           isHost: ws.data.isHost,
           players,
           playerPoints,
+          isHidden,
         })
       )
       ws.publish(
@@ -113,6 +126,7 @@ Bun.serve<SocketData>({
           channelId: ws.data.channelId,
           players,
           playerPoints,
+          isHidden,
         })
       )
     },

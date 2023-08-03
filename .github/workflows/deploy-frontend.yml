@@ -1,0 +1,24 @@
+# name: Deploy Qwik App
+# on:
+#   push:
+#     branches:
+#       - master
+
+# jobs:
+#   build:
+#     runs-on: ubuntu-latest
+#     steps:
+#       - uses: actions/checkout@v3
+#       - uses: actions/setup-node@v3
+#         with:
+#           node-version-file: '.nvmrc'
+#       - name: Clean install dependencies and build
+#         run: |
+#           cd client
+#           npm ci
+#           npm run build
+#         uses: qwikstart/qwik-action@v1
+#         with:
+#           token: ${{ secrets.QWIK_TOKEN }}
+#           app: my-app
+#           env: prod

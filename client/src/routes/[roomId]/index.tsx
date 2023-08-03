@@ -10,6 +10,7 @@ import { useLocation, type DocumentHead } from '@builder.io/qwik-city'
 import { CTX } from '~/root'
 import styles from './index.module.css'
 import Card from '~/components/card/card'
+import { syncWebSocketData } from '~/lib/websocket'
 
 export default component$(() => {
   const store = useContext(CTX)
@@ -18,8 +19,6 @@ export default component$(() => {
   const playerName = useSignal('')
   const cardValues = useSignal([0, 1, 2, 3, 5, 8, 13, 21, 34, 55])
   const input = useSignal('')
-  const cardsHidden = useSignal(true)
-  const error = useSignal('')
 
   const handleClick = $(() => {
     if (!input.value) return
@@ -33,15 +32,7 @@ export default component$(() => {
 
     if (!store.ws) throw new Error('Failed to create websocket')
     store.ws.onmessage = async (event) => {
-      console.log(event.data)
-      store.channelId = JSON.parse(event.data).channelId || store.channelId
-      store.playerName = JSON.parse(event.data).playerName || store.playerName
-      store.players = JSON.parse(event.data).players || store.players
-      store.playerId = JSON.parse(event.data).playerId || store.playerId
-      store.playerPoints =
-        JSON.parse(event.data).playerPoints || store.playerPoints
-      store.isHost = JSON.parse(event.data).isHost || store.isHost
-      error.value = JSON.parse(event.data).error || error.value
+      syncWebSocketData(store, event)
     }
   })
 
@@ -57,8 +48,8 @@ export default component$(() => {
 
   return (
     <>
-      {error.value ? (
-        <h1>{error.value}</h1>
+      {store.error ? (
+        <h1>{store.error}</h1>
       ) : store.playerName ? (
         <div class={styles['game-area']}>
           <div class={styles['players-list']}>
@@ -66,7 +57,7 @@ export default component$(() => {
               {store.players?.map((player, index) => (
                 <li key={index}>
                   {player.playerName}:{' '}
-                  {cardsHidden.value
+                  {store.isHidden
                     ? 'Hidden'
                     : store.playerPoints?.[store.channelId]?.[player.playerId]}
                 </li>
@@ -83,10 +74,27 @@ export default component$(() => {
               <p>{store.playerPoints?.[store.channelId]?.[store.playerId]}</p>
               {store.isHost && (
                 <>
-                  <button onClick$={() => (cardsHidden.value = false)}>
+                  <button
+                    onClick$={() =>
+                      store.ws?.send(
+                        JSON.stringify({
+                          isHidden: false,
+                        })
+                      )
+                    }
+                  >
                     Reveal Estimates
                   </button>
-                  <button onClick$={() => (cardsHidden.value = true)}>
+                  <button
+                    onClick$={() =>
+                      store.ws?.send(
+                        JSON.stringify({
+                          isHidden: true,
+                          clearVotes: true,
+                        })
+                      )
+                    }
+                  >
                     Reset Votes
                   </button>
                 </>
@@ -99,7 +107,7 @@ export default component$(() => {
           <label for="message-input">Enter your name:</label>
           <input
             type="text"
-            name="message-input"
+            id="message-input"
             value={message.value}
             bind:value={input}
           />
