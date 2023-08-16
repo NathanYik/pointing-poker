@@ -21,28 +21,6 @@ export default component$(() => {
   })
 
   const handleClick = $(async () => {
-    console.error("OHHH YEAH I'M ERRRRORRRRRINGGGG OH GODODDD")
-    console.error("OHHH YEAH I'M ERRRRORRRRRINGGGG OH GODODDD")
-    console.error("OHHH YEAH I'M ERRRRORRRRRINGGGG OH GODODDD")
-    console.error("OHHH YEAH I'M ERRRRORRRRRINGGGG OH GODODDD")
-    console.error("OHHH YEAH I'M ERRRRORRRRRINGGGG OH GODODDD")
-    console.error("OHHH YEAH I'M ERRRRORRRRRINGGGG OH GODODDD")
-    console.error("OHHH YEAH I'M ERRRRORRRRRINGGGG OH GODODDD")
-    console.error("OHHH YEAH I'M ERRRRORRRRRINGGGG OH GODODDD")
-    console.error("OHHH YEAH I'M ERRRRORRRRRINGGGG OH GODODDD")
-    console.error("OHHH YEAH I'M ERRRRORRRRRINGGGG OH GODODDD")
-    console.error("OHHH YEAH I'M ERRRRORRRRRINGGGG OH GODODDD")
-    console.error("OHHH YEAH I'M ERRRRORRRRRINGGGG OH GODODDD")
-    console.error("OHHH YEAH I'M ERRRRORRRRRINGGGG OH GODODDD")
-    console.error("OHHH YEAH I'M ERRRRORRRRRINGGGG OH GODODDD")
-    console.error("OHHH YEAH I'M ERRRRORRRRRINGGGG OH GODODDD")
-    console.error("OHHH YEAH I'M ERRRRORRRRRINGGGG OH GODODDD")
-    console.error("OHHH YEAH I'M ERRRRORRRRRINGGGG OH GODODDD")
-    console.error("OHHH YEAH I'M ERRRRORRRRRINGGGG OH GODODDD")
-    console.error("OHHH YEAH I'M ERRRRORRRRRINGGGG OH GODODDD")
-    console.error("OHHH YEAH I'M ERRRRORRRRRINGGGG OH GODODDD")
-    console.error("OHHH YEAH I'M ERRRRORRRRRINGGGG OH GODODDD")
-    console.error("OHHH YEAH I'M ERRRRORRRRRINGGGG OH GODODDD")
     if (!store.playerName) return
     const url = new URL('ws://localhost:3000')
     url.searchParams.set('playerName', store.playerName)
@@ -58,8 +36,6 @@ export default component$(() => {
 
   return (
     <>
-      <h1>bleh?</h1>
-      <h1>plz work</h1>
       <button onClick$={handleClick}>Create Room</button>
       <input
         type="text"
