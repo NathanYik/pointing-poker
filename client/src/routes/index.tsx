@@ -36,7 +36,7 @@ export default component$(() => {
 
   return (
     <>
-      <h1>Hi there!</h1>
+      <h1>bleh?</h1>
       <button onClick$={handleClick}>Create Room</button>
       <input
         type="text"
