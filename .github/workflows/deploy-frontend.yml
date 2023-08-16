@@ -8,6 +8,10 @@ on:
       - 'client/**'
   workflow_dispatch:
 
+defaults:
+  run:
+    working-directory: client
+
 jobs:
   build:
     runs-on: ubuntu-latest
