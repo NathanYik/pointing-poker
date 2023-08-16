@@ -44,7 +44,7 @@ jobs:
         id: deployment
         uses: nwtgck/actions-netlify@v2
         with:
-          publish-dir: 'dist'
+          publish-dir: 'client/dist'
           production-deploy: true
         env:
           NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }}
