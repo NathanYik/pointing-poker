@@ -32,9 +32,6 @@ jobs:
       - name: Install Dependencies
         run: npm ci
 
-      - name: Build bundle
-        run: npm run build
-
       - name: Publish to Netlify
         id: deployment
         # uses: nwtgck/actions-netlify@v2
