@@ -30,7 +30,7 @@ export default component$(() => {
     if (!store.ws) throw new Error('Failed to create websocket')
     store.ws.onmessage = async (event) => {
       syncWebSocketData(store, event)
-      await nav(`/${JSON.parse(event.data).channelId}`)
+      nav(`/${JSON.parse(event.data).channelId}`)
     }
   })
 
