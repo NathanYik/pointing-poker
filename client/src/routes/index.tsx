@@ -36,7 +36,7 @@ export default component$(() => {
 
   return (
     <>
-      <button onClick$={handleClick}>Create Room</button>
+      <button onClick$={handleClick}>Create a Room</button>
       <input
         type="text"
         onInput$={(e: Event) =>
