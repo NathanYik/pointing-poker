@@ -41,7 +41,7 @@ jobs:
         with:
           publish-dir: './client/dist'
           production-deploy: true
-          functions-dir: './client/.netlify'
+          functions-dir: './client/.netlify/edge-functions'
         env:
           NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }}
           NETLIFY_SITE_ID: ${{ secrets.NETLIFY_SITE_ID }}
