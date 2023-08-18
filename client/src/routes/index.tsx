@@ -10,6 +10,8 @@ import {
 import { type DocumentHead, useNavigate } from '@builder.io/qwik-city'
 import { syncWebSocketData } from '~/lib/websocket'
 import { CTX } from '~/root'
+import { API_URL } from '~/lib/url'
+
 
 export default component$(() => {
   const nav = useNavigate()
@@ -22,7 +24,7 @@ export default component$(() => {
 
   const handleClick = $(async () => {
     if (!store.playerName) return
-    const url = new URL('ws://localhost:3000')
+    const url = new URL(API_URL)
     url.searchParams.set('playerName', store.playerName)
     url.searchParams.set('connectionType', 'create')
     store.ws = noSerialize(new WebSocket(url))

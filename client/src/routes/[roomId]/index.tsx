@@ -11,6 +11,7 @@ import { CTX } from '~/root'
 import styles from './index.module.css'
 import Card from '~/components/card/card'
 import { syncWebSocketData } from '~/lib/websocket'
+import { API_URL } from '~/lib/url'
 
 export default component$(() => {
   const store = useContext(CTX)
@@ -23,7 +24,7 @@ export default component$(() => {
   const handleClick = $(() => {
     if (!input.value) return
 
-    const url = new URL('ws://localhost:3000')
+    const url = new URL(API_URL)
     url.searchParams.set('playerName', input.value)
     url.searchParams.set('channelId', location.url.pathname.split('/')[1])
     url.searchParams.set('connectionType', 'join')
