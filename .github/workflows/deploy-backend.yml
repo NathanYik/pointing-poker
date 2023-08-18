@@ -23,7 +23,8 @@ jobs:
       - name: Checkout Repository
         uses: actions/checkout@v3
 
-      - uses: superfly/flyctl-actions/setup-flyctl@master
+      - name: Setup Flyctl
+        uses: superfly/flyctl-actions/setup-flyctl@master
 
       - name: Publish to Fly.io
         run: 'flyctl deploy --remote-only'
