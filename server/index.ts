@@ -20,6 +20,7 @@ Bun.serve<SocketData>({
   port: 3000,
   fetch(req, server) {
     console.log(`Received socket request from ${req.url}`)
+    console.log('woo CI!')
 
     const playerName = new URL(req.url).searchParams.get('playerName')
     const channelId =

@@ -13,12 +13,11 @@ defaults:
     working-directory: client
 
 jobs:
-  build:
+  Deploy:
     runs-on: ubuntu-latest
 
     environment:
       name: production
-      url: ${{ steps.deployment.outputs.deploy-url }}
 
     steps:
       - name: Checkout Repository
@@ -34,11 +33,6 @@ jobs:
 
       - name: Publish to Netlify
         id: deployment
-        # uses: nwtgck/actions-netlify@v2
-        # with:
-        #   publish-dir: './client/dist'
-        #   production-deploy: true
-        #   functions-dir: './client/.netlify/edge-functions/entry.netlify-edge'
         env:
           NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }}
           NETLIFY_SITE_ID: ${{ secrets.NETLIFY_SITE_ID }}
