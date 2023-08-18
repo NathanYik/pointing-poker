@@ -38,6 +38,7 @@ export default component$(() => {
 
   return (
     <>
+      <h1>Maybe env variables work??</h1>
       <button onClick$={handleClick}>Create a Room</button>
       <input
         type="text"
