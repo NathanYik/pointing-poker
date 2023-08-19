@@ -4,7 +4,6 @@ import {
   noSerialize,
   useSignal,
   useTask$,
-  useVisibleTask$,
 } from '@builder.io/qwik'
 import { useLocation, type DocumentHead } from '@builder.io/qwik-city'
 import styles from './index.module.css'
@@ -12,7 +11,7 @@ import Card from '~/components/card/card'
 import { syncWebSocketData } from '~/lib/websocket'
 import { API_URL } from '~/lib/url'
 import { socketMessage } from '~/lib/websocket'
-import { usePointingPokerSession } from '~/hooks/useStore'
+import { usePointingPokerSession } from '~/hooks/usePointingPokerSession'
 
 export default component$(() => {
   const store = usePointingPokerSession()

@@ -8,7 +8,7 @@ import {
 import { type DocumentHead, useNavigate } from '@builder.io/qwik-city'
 import { socketMessage, syncWebSocketData } from '~/lib/websocket'
 import { API_URL } from '~/lib/url'
-import { usePointingPokerSession } from '~/hooks/useStore'
+import { usePointingPokerSession } from '~/hooks/usePointingPokerSession'
 
 export default component$(() => {
   const nav = useNavigate()
