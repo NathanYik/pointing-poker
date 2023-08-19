@@ -2,24 +2,36 @@ import {
   $,
   component$,
   noSerialize,
-  useContext,
   useSignal,
-  // type QwikChangeEvent,
+  useTask$,
+  useVisibleTask$,
 } from '@builder.io/qwik'
 import { useLocation, type DocumentHead } from '@builder.io/qwik-city'
-import { CTX } from '~/root'
 import styles from './index.module.css'
 import Card from '~/components/card/card'
 import { syncWebSocketData } from '~/lib/websocket'
 import { API_URL } from '~/lib/url'
+import { socketMessage } from '~/lib/websocket'
+import { usePointingPokerSession } from '~/hooks/useStore'
 
 export default component$(() => {
-  const store = useContext(CTX)
+  const store = usePointingPokerSession()
   const message = useSignal('')
   const location = useLocation()
   const playerName = useSignal('')
   const cardValues = useSignal([0, 1, 2, 3, 5, 8, 13, 21, 34, 55])
   const input = useSignal('')
+
+  useTask$(({ track, cleanup }) => {
+    track(() => store.triggerPing)
+    const timeout = setTimeout(() => {
+      console.log(
+        `Websocket timed out for player ID: ${store.playerId}, closing connection`
+      )
+      return store.ws?.close()
+    }, 60000)
+    cleanup(() => clearTimeout(timeout))
+  })
 
   const handleClick = $(() => {
     if (!input.value) return
@@ -33,6 +45,12 @@ export default component$(() => {
 
     if (!store.ws) throw new Error('Failed to create websocket')
     store.ws.onmessage = async (event) => {
+      const data = JSON.parse(event.data)
+      if (data.ping) {
+        console.log('Received incoming ping')
+        store.triggerPing = !store.triggerPing
+        store.ws?.send(socketMessage({ type: 'PONG' }))
+      }
       syncWebSocketData(store, event)
     }
   })
@@ -40,9 +58,12 @@ export default component$(() => {
   const onClick = (cardValue: number) =>
     $(() =>
       store.ws?.send(
-        JSON.stringify({
-          playerId: store.playerId,
-          cardValue,
+        socketMessage({
+          type: 'CHANGE_POINT_VALUE',
+          payload: {
+            playerId: store.playerId,
+            cardValue,
+          },
         })
       )
     )
@@ -78,8 +99,8 @@ export default component$(() => {
                   <button
                     onClick$={() =>
                       store.ws?.send(
-                        JSON.stringify({
-                          isHidden: false,
+                        socketMessage({
+                          type: 'REVEAL_VOTES',
                         })
                       )
                     }
@@ -89,9 +110,8 @@ export default component$(() => {
                   <button
                     onClick$={() =>
                       store.ws?.send(
-                        JSON.stringify({
-                          isHidden: true,
-                          clearVotes: true,
+                        socketMessage({
+                          type: 'RESET_VOTES',
                         })
                       )
                     }

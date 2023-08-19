@@ -10,4 +10,5 @@ export interface PointingPokerSession {
   playerPoints: Record<string, Record<string, number>>
   isHost: boolean
   isHidden: boolean
+  triggerPing: boolean
 }

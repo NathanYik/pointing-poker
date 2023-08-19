@@ -4,17 +4,27 @@ export const syncWebSocketData = (
   store: PointingPokerSession,
   event: MessageEvent
 ) => {
-  console.log('WebSocket Message Received: ', JSON.parse(event.data))
-  store.channelId = JSON.parse(event.data).channelId || store.channelId
-  store.playerName = JSON.parse(event.data).playerName || store.playerName
-  store.players = JSON.parse(event.data).players || store.players
-  store.playerId = JSON.parse(event.data).playerId || store.playerId
-  store.playerPoints = JSON.parse(event.data).playerPoints || store.playerPoints
-  store.isHost = JSON.parse(event.data).isHost || store.isHost
-  store.error = JSON.parse(event.data).error || store.error
-  store.isHidden =
-    JSON.parse(event.data).isHidden === undefined
-      ? store.isHidden
-      : JSON.parse(event.data).isHidden
+  const data = JSON.parse(event.data)
+  console.log('WebSocket Message Received: ', data)
+  store.channelId = data.channelId || store.channelId
+  store.playerName = data.playerName || store.playerName
+  store.players = data.players || store.players
+  store.playerId = data.playerId || store.playerId
+  store.playerPoints = data.playerPoints || store.playerPoints
+  store.isHost = data.isHost || store.isHost
+  store.error = data.error || store.error
+  store.isHidden = data.isHidden === undefined ? store.isHidden : data.isHidden
   console.log(store)
 }
+
+export const socketMessage = ({
+  type,
+  payload,
+}: {
+  type: string
+  payload?: any
+}) =>
+  JSON.stringify({
+    type,
+    payload,
+  })

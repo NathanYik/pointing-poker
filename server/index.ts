@@ -10,17 +10,36 @@ type SocketData = {
   playerId: string
   connectionType: string
   isHost: boolean
+  isAlive: boolean
 }
 
+let players = new Set<ServerWebSocket<SocketData>>()
 let rooms = new Map<string, Set<ServerWebSocket<SocketData>>>()
 let playerPoints: Record<string, Record<string, number>> = {}
 let isHidden = true
+let socketHeartbeat: Timer
+
+function pingClient() {
+  socketHeartbeat = setInterval(() => {
+    if (players.size === 0) {
+      console.log('stopping ping')
+      clearInterval(socketHeartbeat)
+    }
+    players.forEach((ws) => {
+      if (ws.data.isAlive === false) {
+        return ws.close()
+      }
+      ws.data.isAlive = false
+      console.log('Sending ping to player ID:', ws.data.playerId)
+      ws.send(JSON.stringify({ ping: true }))
+    })
+  }, 55000)
+}
 
 Bun.serve<SocketData>({
   port: 3000,
   fetch(req, server) {
     console.log(`Received socket request from ${req.url}`)
-    console.log('woo continuous integration!')
 
     const playerName = new URL(req.url).searchParams.get('playerName')
     const channelId =
@@ -29,9 +48,17 @@ Bun.serve<SocketData>({
     const playerId = Math.random().toString(36).substring(2, 36)
     const connectionType = new URL(req.url).searchParams.get('connectionType')
     const isHost = connectionType === 'create'
+    const isAlive = true
 
     server.upgrade(req, {
-      data: { channelId, playerId, playerName, connectionType, isHost },
+      data: {
+        channelId,
+        playerId,
+        playerName,
+        connectionType,
+        isHost,
+        isAlive,
+      },
     })
 
     return new Response('Unable to establish Socket connection.', {
@@ -57,13 +84,20 @@ Bun.serve<SocketData>({
         return
       }
 
-      const players = Array.from(rooms.get(ws.data.channelId) || []).map(
+      players.add(ws)
+      if (players.size === 1) {
+        console.log('starting ping')
+        pingClient()
+      }
+      console.log('players: ', players)
+
+      const playersInRoom = Array.from(rooms.get(ws.data.channelId) || []).map(
         (client) => ({
           playerId: client.data.playerId,
           playerName: client.data.playerName,
         })
       )
-      console.log(players)
+      console.log(playersInRoom)
 
       console.log(rooms.get(ws.data.channelId))
       ws.subscribe(ws.data.channelId)
@@ -74,16 +108,17 @@ Bun.serve<SocketData>({
           playerName: ws.data.playerName,
           playerId: ws.data.playerId,
           isHost: ws.data.isHost,
-          players,
+          players: playersInRoom,
           playerPoints,
           isHidden,
+          shouldRedirect: true,
         })
       )
       ws.publish(
         ws.data.channelId,
         JSON.stringify({
           channelId: ws.data.channelId,
-          players,
+          players: playersInRoom,
           playerPoints,
           isHidden,
         })
@@ -91,23 +126,36 @@ Bun.serve<SocketData>({
     },
     message(ws, message) {
       const data = JSON.parse(message as string)
-      console.log(`Received incoming message: '${message}'`)
-      const players = Array.from(rooms.get(ws.data.channelId) || []).map(
-        (client) => ({
-          playerId: client.data.playerId,
-          playerName: client.data.playerName,
-        })
-      )
+      console.log('Received incoming message: ', data)
+      let playersInRoom
 
-      playerPoints[ws.data.channelId] = playerPoints[ws.data.channelId] || {}
-      playerPoints[ws.data.channelId][ws.data.playerId] =
-        data.cardValue === undefined
-          ? playerPoints[ws.data.channelId][ws.data.playerId]
-          : data.cardValue
-      isHidden = data.isHidden === undefined ? isHidden : data.isHidden
+      switch (data.type) {
+        case 'CHANGE_POINT_VALUE':
+          console.log('changing point value')
+          playersInRoom = Array.from(rooms.get(ws.data.channelId) || []).map(
+            (client) => ({
+              playerId: client.data.playerId,
+              playerName: client.data.playerName,
+            })
+          )
 
-      if (data.clearVotes) {
-        playerPoints[ws.data.channelId] = {}
+          playerPoints[ws.data.channelId] =
+            playerPoints[ws.data.channelId] || {}
+          playerPoints[ws.data.channelId][ws.data.playerId] =
+            data.payload.cardValue
+          break
+        case 'REVEAL_VOTES':
+          console.log('revealing votes')
+          isHidden = false
+          break
+        case 'RESET_VOTES':
+          console.log('resetting votes')
+          isHidden = true
+          playerPoints[ws.data.channelId] = {}
+          break
+        case 'PONG':
+          ws.data.isAlive = true
+          return
       }
 
       ws.send(
@@ -116,7 +164,7 @@ Bun.serve<SocketData>({
           playerName: ws.data.playerName,
           playerId: ws.data.playerId,
           isHost: ws.data.isHost,
-          players,
+          players: playersInRoom,
           playerPoints,
           isHidden,
         })
@@ -125,14 +173,14 @@ Bun.serve<SocketData>({
         ws.data.channelId,
         JSON.stringify({
           channelId: ws.data.channelId,
-          players,
+          players: playersInRoom,
           playerPoints,
           isHidden,
         })
       )
     },
     close(ws) {
-      console.log(`Closing WebSocket Connection with ${ws.data.channelId}`)
+      console.log(`Closing WebSocket Connection with ${ws.data.playerId}`)
       // ws.publish(
       //   ws.data.channelId,
       //   JSON.stringify({
@@ -140,9 +188,16 @@ Bun.serve<SocketData>({
       //   })
       // )
       ws.unsubscribe(ws.data.channelId)
+      players.delete(ws)
+
+      // if (players.size === 0) {
+      //   clearInterval(socketHeartbeat)
+      // }
+
+      console.log('players: ', players)
 
       rooms.get(ws.data.channelId)?.delete(ws)
-      const players = Array.from(rooms.get(ws.data.channelId) || []).map(
+      const playersInRoom = Array.from(rooms.get(ws.data.channelId) || []).map(
         (client) => ({
           playerId: client.data.playerId,
           playerName: client.data.playerName,
@@ -155,13 +210,12 @@ Bun.serve<SocketData>({
         return
       }
 
-      console.log('publishing')
       console.log(ws.data.channelId)
       rooms.get(ws.data.channelId)?.forEach((client) => {
         client.send(
           JSON.stringify({
             channelId: ws.data.channelId,
-            players,
+            players: playersInRoom,
             playerPoints,
           })
         )
@@ -175,7 +229,6 @@ Bun.serve<SocketData>({
       //     playerPoints,
       //   })
       // )
-      console.log('published')
     },
   },
 })
