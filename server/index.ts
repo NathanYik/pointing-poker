@@ -150,8 +150,6 @@ const server = serve<SocketData>({
             playerPoints[ws.data.channelId] || {}
           playerPoints[ws.data.channelId][ws.data.playerId] =
             data.payload.cardValue
-          const code = ws.ping('ping')
-          console.log('code: ', code)
           break
         case 'REVEAL_VOTES':
           console.log('revealing votes')
