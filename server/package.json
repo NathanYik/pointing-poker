@@ -6,6 +6,6 @@
     "start": "bun --watch index.ts"
   },
   "devDependencies": {
-    "bun-types": "^0.5.0"
+    "bun-types": "latest"
   }
 }

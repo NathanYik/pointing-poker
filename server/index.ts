@@ -1,4 +1,4 @@
-import { ServerWebSocket, type Serve, Server } from 'bun'
+import { ServerWebSocket, Server, serve } from 'bun'
 
 declare global {
   var server: Server
@@ -13,30 +13,32 @@ type SocketData = {
   isAlive: boolean
 }
 
-let players = new Set<ServerWebSocket<SocketData>>()
-let rooms = new Map<string, Set<ServerWebSocket<SocketData>>>()
+let wsConnections = new Set<ServerWebSocket<SocketData>>()
+let rooms = new Map<
+  string,
+  { pointsHidden: boolean; players: Set<ServerWebSocket<SocketData>> }
+>()
 let playerPoints: Record<string, Record<string, number>> = {}
 let isHidden = true
-let socketHeartbeat: Timer
 
 function pingClient() {
-  socketHeartbeat = setInterval(() => {
-    if (players.size === 0) {
-      console.log('stopping ping')
+  console.log('ds')
+  const socketHeartbeat = setInterval(() => {
+    if (wsConnections.size === 0) {
+      console.log('No players detected, stopping pings')
       clearInterval(socketHeartbeat)
     }
-    players.forEach((ws) => {
-      if (ws.data.isAlive === false) {
-        return ws.close()
-      }
+    wsConnections.forEach((ws) => {
+      if (ws.data.isAlive === false) return ws.close()
+
       ws.data.isAlive = false
       console.log('Sending ping to player ID:', ws.data.playerId)
-      ws.send(JSON.stringify({ ping: true }))
+      ws.ping()
     })
-  }, 55000)
+  }, 5000)
 }
 
-Bun.serve<SocketData>({
+const server = serve<SocketData>({
   port: 3000,
   fetch(req, server) {
     console.log(`Received socket request from ${req.url}`)
@@ -70,10 +72,13 @@ Bun.serve<SocketData>({
       console.log(`Opened WebSocket Connection with ${ws.data.channelId}`)
       if (ws.data.connectionType === 'join' && rooms.has(ws.data.channelId)) {
         console.log('Joining room')
-        rooms.get(ws.data.channelId)?.add(ws)
+        rooms.get(ws.data.channelId)?.players.add(ws)
       } else if (ws.data.connectionType === 'create') {
         console.log('Creating room')
-        rooms.set(ws.data.channelId, new Set([ws]))
+        rooms.set(ws.data.channelId, {
+          pointsHidden: true,
+          players: new Set([ws]),
+        })
       } else {
         console.log('error?')
         ws.send(
@@ -84,22 +89,21 @@ Bun.serve<SocketData>({
         return
       }
 
-      players.add(ws)
-      if (players.size === 1) {
-        console.log('starting ping')
+      wsConnections.add(ws)
+      if (wsConnections.size === 1) {
+        console.log('Players detected, starting pings')
         pingClient()
       }
-      console.log('players: ', players)
 
-      const playersInRoom = Array.from(rooms.get(ws.data.channelId) || []).map(
-        (client) => ({
-          playerId: client.data.playerId,
-          playerName: client.data.playerName,
-        })
-      )
-      console.log(playersInRoom)
+      const players = Array.from(
+        rooms.get(ws.data.channelId)?.players || []
+      ).map((client) => ({
+        playerId: client.data.playerId,
+        playerName: client.data.playerName,
+      }))
+      console.log(players)
 
-      console.log(rooms.get(ws.data.channelId))
+      console.log(rooms.get(ws.data.channelId)?.players)
       ws.subscribe(ws.data.channelId)
 
       ws.send(
@@ -108,31 +112,34 @@ Bun.serve<SocketData>({
           playerName: ws.data.playerName,
           playerId: ws.data.playerId,
           isHost: ws.data.isHost,
-          players: playersInRoom,
+          players,
           playerPoints,
-          isHidden,
-          shouldRedirect: true,
+          isHidden: rooms.get(ws.data.channelId)?.pointsHidden,
         })
       )
       ws.publish(
         ws.data.channelId,
         JSON.stringify({
           channelId: ws.data.channelId,
-          players: playersInRoom,
+          players,
           playerPoints,
-          isHidden,
+          isHidden: rooms.get(ws.data.channelId)?.pointsHidden,
         })
       )
+    },
+    pong(ws) {
+      ws.data.isAlive = true
+      console.log('Received pong from player ID:', ws.data.playerId)
     },
     message(ws, message) {
       const data = JSON.parse(message as string)
       console.log('Received incoming message: ', data)
-      let playersInRoom
+      let players
 
       switch (data.type) {
         case 'CHANGE_POINT_VALUE':
           console.log('changing point value')
-          playersInRoom = Array.from(rooms.get(ws.data.channelId) || []).map(
+          players = Array.from(rooms.get(ws.data.channelId)?.players || []).map(
             (client) => ({
               playerId: client.data.playerId,
               playerName: client.data.playerName,
@@ -143,19 +150,22 @@ Bun.serve<SocketData>({
             playerPoints[ws.data.channelId] || {}
           playerPoints[ws.data.channelId][ws.data.playerId] =
             data.payload.cardValue
+          const code = ws.ping('ping')
+          console.log('code: ', code)
           break
         case 'REVEAL_VOTES':
           console.log('revealing votes')
-          isHidden = false
+          const room = rooms.get(ws.data.channelId)
+          if (!room) return
+          room.pointsHidden = false
           break
         case 'RESET_VOTES':
           console.log('resetting votes')
-          isHidden = true
+          const room2 = rooms.get(ws.data.channelId)
+          if (!room2) return
+          room2.pointsHidden = true
           playerPoints[ws.data.channelId] = {}
           break
-        case 'PONG':
-          ws.data.isAlive = true
-          return
       }
 
       ws.send(
@@ -164,71 +174,50 @@ Bun.serve<SocketData>({
           playerName: ws.data.playerName,
           playerId: ws.data.playerId,
           isHost: ws.data.isHost,
-          players: playersInRoom,
+          players,
           playerPoints,
-          isHidden,
+          isHidden: rooms.get(ws.data.channelId)?.pointsHidden,
         })
       )
       ws.publish(
         ws.data.channelId,
         JSON.stringify({
           channelId: ws.data.channelId,
-          players: playersInRoom,
+          players,
           playerPoints,
-          isHidden,
+          isHidden: rooms.get(ws.data.channelId)?.pointsHidden,
         })
       )
     },
     close(ws) {
       console.log(`Closing WebSocket Connection with ${ws.data.playerId}`)
-      // ws.publish(
-      //   ws.data.channelId,
-      //   JSON.stringify({
-      //     hi: 'hi',
-      //   })
-      // )
-      ws.unsubscribe(ws.data.channelId)
-      players.delete(ws)
+      wsConnections.delete(ws)
 
-      // if (players.size === 0) {
-      //   clearInterval(socketHeartbeat)
-      // }
+      console.log('players: ', wsConnections)
 
-      console.log('players: ', players)
+      rooms.get(ws.data.channelId)?.players.delete(ws)
+      const players = Array.from(
+        rooms.get(ws.data.channelId)?.players || []
+      ).map((client) => ({
+        playerId: client.data.playerId,
+        playerName: client.data.playerName,
+      }))
 
-      rooms.get(ws.data.channelId)?.delete(ws)
-      const playersInRoom = Array.from(rooms.get(ws.data.channelId) || []).map(
-        (client) => ({
-          playerId: client.data.playerId,
-          playerName: client.data.playerName,
-        })
-      )
-
-      if (rooms.get(ws.data.channelId)?.size === 0) {
+      if (rooms.get(ws.data.channelId)?.players.size === 0) {
         console.log(`Deleting room ${ws.data.channelId}`)
         rooms.delete(ws.data.channelId)
         return
       }
 
-      console.log(ws.data.channelId)
-      rooms.get(ws.data.channelId)?.forEach((client) => {
-        client.send(
-          JSON.stringify({
-            channelId: ws.data.channelId,
-            players: playersInRoom,
-            playerPoints,
-          })
-        )
-      })
-
-      // ws.publish(
-      //   ws.data.channelId,
-      //   JSON.stringify({
-      //     channelId: ws.data.channelId,
-      //     players,
-      //     playerPoints,
-      //   })
-      // )
+      ws.unsubscribe(ws.data.channelId)
+      server.publish(
+        ws.data.channelId,
+        JSON.stringify({
+          channelId: ws.data.channelId,
+          players,
+          playerPoints,
+        })
+      )
     },
   },
 })

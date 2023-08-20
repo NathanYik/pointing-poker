@@ -1,10 +1,4 @@
-import {
-  $,
-  component$,
-  noSerialize,
-  useSignal,
-  useTask$,
-} from '@builder.io/qwik'
+import { $, component$, noSerialize, useSignal } from '@builder.io/qwik'
 import { useLocation, type DocumentHead } from '@builder.io/qwik-city'
 import styles from './index.module.css'
 import Card from '~/components/card/card'
@@ -15,22 +9,9 @@ import { usePointingPokerSession } from '~/hooks/usePointingPokerSession'
 
 export default component$(() => {
   const store = usePointingPokerSession()
-  const message = useSignal('')
   const location = useLocation()
-  const playerName = useSignal('')
   const cardValues = useSignal([0, 1, 2, 3, 5, 8, 13, 21, 34, 55])
   const input = useSignal('')
-
-  useTask$(({ track, cleanup }) => {
-    track(() => store.triggerPing)
-    const timeout = setTimeout(() => {
-      console.log(
-        `Websocket timed out for player ID: ${store.playerId}, closing connection`
-      )
-      return store.ws?.close()
-    }, 60000)
-    cleanup(() => clearTimeout(timeout))
-  })
 
   const handleClick = $(() => {
     if (!input.value) return
@@ -44,12 +25,6 @@ export default component$(() => {
 
     if (!store.ws) throw new Error('Failed to create websocket')
     store.ws.onmessage = async (event) => {
-      const data = JSON.parse(event.data)
-      if (data.ping) {
-        console.log('Received incoming ping')
-        store.triggerPing = !store.triggerPing
-        store.ws?.send(socketMessage({ type: 'PONG' }))
-      }
       syncWebSocketData(store, event)
     }
   })
@@ -125,14 +100,8 @@ export default component$(() => {
       ) : (
         <>
           <label for="message-input">Enter your name:</label>
-          <input
-            type="text"
-            id="message-input"
-            value={message.value}
-            bind:value={input}
-          />
+          <input type="text" id="message-input" bind:value={input} />
           <button onClick$={handleClick}>Submit</button>
-          <h1>{playerName.value}</h1>
         </>
       )}
     </>
