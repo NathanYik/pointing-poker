@@ -35,7 +35,7 @@ function pingClient() {
       console.log('Sending ping to player ID:', ws.data.playerId)
       ws.ping()
     })
-  }, 5000)
+  }, 55000)
 }
 
 const server = serve<SocketData>({
