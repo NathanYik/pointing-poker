@@ -19,7 +19,7 @@ export default component$(() => {
     const url = new URL(API_URL)
     url.searchParams.set('playerName', input.value)
     url.searchParams.set('channelId', location.url.pathname.split('/')[1])
-    url.searchParams.set('connectionType', 'join')
+    url.searchParams.set('connectionType', 'JOIN')
 
     store.ws = noSerialize(new WebSocket(url))
 
@@ -30,7 +30,7 @@ export default component$(() => {
   })
 
   const onClick = (cardValue: number) =>
-    $(() =>
+    $(() => {
       store.ws?.send(
         socketMessage({
           type: 'CHANGE_POINT_VALUE',
@@ -40,71 +40,101 @@ export default component$(() => {
           },
         })
       )
+    })
+
+  if (store.error) {
+    return <h1>{store.error}</h1>
+  }
+
+  if (!store.playerName) {
+    return (
+      <>
+        <label for="name-input">Enter your name:</label>
+        <input type="text" id="name-input" bind:value={input} />
+        <button onClick$={handleClick}>Join room</button>
+      </>
     )
+  }
 
   return (
-    <>
-      {store.error ? (
-        <h1>{store.error}</h1>
-      ) : store.playerName ? (
-        <div class={styles['game-area']}>
-          <div class={styles['players-list']}>
-            <ul>
-              {store.players?.map((player, index) => (
-                <li key={index}>
+    <div class={styles['game-area']}>
+      <div class={styles['players-list']}>
+        <h3>Players:</h3>
+        <ul>
+          {store.players?.map((player, index) => (
+            <li key={index}>
+              <div class={styles['player-tag']}>
+                <div class={styles['player-name']}>
+                  {player.isHost && '👑 '}
                   {player.playerName}:{' '}
-                  {store.isHidden
-                    ? 'Hidden'
-                    : store.playerPoints?.[store.channelId]?.[player.playerId]}
-                </li>
-              ))}
-            </ul>
-          </div>
-          <div class={styles['pointing-area']}>
-            <>
-              <div class={styles['cards-area']}>
-                {cardValues.value.map((value, index) => (
-                  <Card key={index} value={value} onClick={onClick(value)} />
-                ))}
+                </div>
+                {store.isHidden ? (
+                  player.hasVoted ? (
+                    <svg
+                      class="MuiSvgIcon-root jss64"
+                      focusable="false"
+                      viewBox="0 0 24 24"
+                      width="24px"
+                    >
+                      <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zM9.29 16.29L5.7 12.7a.9959.9959 0 010-1.41c.39-.39 1.02-.39 1.41 0L10 14.17l6.88-6.88c.39-.39 1.02-.39 1.41 0 .39.39.39 1.02 0 1.41l-7.59 7.59c-.38.39-1.02.39-1.41 0z"></path>
+                    </svg>
+                  ) : (
+                    <svg
+                      class="MuiSvgIcon-root jss201"
+                      focusable="false"
+                      viewBox="0 0 24 24"
+                      width="24px"
+                    >
+                      <path d="M16.24 7.76C15.07 6.59 13.54 6 12 6v6l-4.24 4.24c2.34 2.34 6.14 2.34 8.49 0 2.34-2.34 2.34-6.14-.01-8.48zM12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8z"></path>
+                    </svg>
+                  )
+                ) : (
+                  store.playerPoints?.[store.channelId]?.[player.playerId]
+                )}
               </div>
-              <p>{store.playerPoints?.[store.channelId]?.[store.playerId]}</p>
-              {store.isHost && (
-                <>
-                  <button
-                    onClick$={() =>
-                      store.ws?.send(
-                        socketMessage({
-                          type: 'REVEAL_VOTES',
-                        })
-                      )
-                    }
-                  >
-                    Reveal Estimates
-                  </button>
-                  <button
-                    onClick$={() =>
-                      store.ws?.send(
-                        socketMessage({
-                          type: 'RESET_VOTES',
-                        })
-                      )
-                    }
-                  >
-                    Reset Votes
-                  </button>
-                </>
-              )}
-            </>
-          </div>
+            </li>
+          ))}
+        </ul>
+      </div>
+      <div class={styles['pointing-area']}>
+        <div class={styles['cards-area']}>
+          {cardValues.value.map((value, index) => (
+            <Card key={index} value={value} onClick={onClick(value)} />
+          ))}
         </div>
-      ) : (
-        <>
-          <label for="message-input">Enter your name:</label>
-          <input type="text" id="message-input" bind:value={input} />
-          <button onClick$={handleClick}>Submit</button>
-        </>
-      )}
-    </>
+        {store.isHost && (
+          <>
+            {store.isHidden ? (
+              <button
+                class={styles['host-button']}
+                onClick$={() =>
+                  store.ws?.send(
+                    socketMessage({
+                      type: 'REVEAL_VOTES',
+                    })
+                  )
+                }
+              >
+                REVEAL ESTIMATES
+              </button>
+            ) : (
+              <button
+                class={styles['host-button']}
+                onClick$={() => {
+                  store.ws?.send(
+                    socketMessage({
+                      type: 'RESET_VOTES',
+                    })
+                  )
+                }}
+              >
+                START NEW ESTIMATION ROUND
+              </button>
+            )}
+          </>
+        )}
+      </div>
+    </div>
   )
 })
 

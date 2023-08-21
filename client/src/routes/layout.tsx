@@ -1,7 +1,6 @@
-import { component$, Slot, useContext } from '@builder.io/qwik'
+import { component$, Slot } from '@builder.io/qwik'
 import { routeLoader$ } from '@builder.io/qwik-city'
-import Header from '~/components/starter/header/header'
-import { CTX } from '~/root'
+import { usePointingPokerSession } from '~/hooks/usePointingPokerSession'
 
 export const useServerTimeLoader = routeLoader$(() => {
   return {
@@ -10,11 +9,17 @@ export const useServerTimeLoader = routeLoader$(() => {
 })
 
 export default component$(() => {
-  const store = useContext(CTX)
+  const store = usePointingPokerSession()
 
   return (
     <>
-      {store.playerName && <Header />}
+      <header>
+        {store.playerName ? (
+          <h1>Welcome {store.playerName}</h1>
+        ) : (
+          <h1>HP Instant Ink Pointing Poker</h1>
+        )}
+      </header>
       <main>
         <Slot />
       </main>

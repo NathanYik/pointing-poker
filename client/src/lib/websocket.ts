@@ -14,6 +14,7 @@ export const syncWebSocketData = (
   store.isHost = data.isHost || store.isHost
   store.error = data.error || store.error
   store.isHidden = data.isHidden === undefined ? store.isHidden : data.isHidden
+  store.hasVoted = data.hasVoted === undefined ? store.hasVoted : data.hasVoted
   console.log(store)
 }
 

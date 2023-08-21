@@ -2,7 +2,13 @@ import { type NoSerialize } from '@builder.io/qwik'
 
 export interface PointingPokerSession {
   ws: NoSerialize<WebSocket> | undefined
-  players: { playerId: string; playerName: string }[]
+  players: {
+    playerId: string
+    playerName: string
+    hasVoted: boolean
+    isHost: boolean
+    selectedCardValue: number
+  }[]
   playerName: string
   playerId: string
   channelId: string
@@ -10,5 +16,5 @@ export interface PointingPokerSession {
   playerPoints: Record<string, Record<string, number>>
   isHost: boolean
   isHidden: boolean
-  triggerPing: boolean
+  hasVoted: boolean
 }

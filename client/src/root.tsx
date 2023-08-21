@@ -26,7 +26,7 @@ const initialPointingPokerSession: PointingPokerSession = {
   isHost: false,
   error: undefined,
   isHidden: true,
-  triggerPing: true,
+  hasVoted: false,
 }
 
 export default component$(() => {

@@ -4,25 +4,27 @@ declare global {
   var server: Server
 }
 
-type SocketData = {
+interface SocketData {
   channelId: string
   playerName: string
   playerId: string
   connectionType: string
   isHost: boolean
   isAlive: boolean
+  hasVoted: boolean
+  selectedCardValue: number | undefined
+}
+
+interface RoomData {
+  pointsHidden: boolean
+  players: Set<ServerWebSocket<SocketData>>
 }
 
 let wsConnections = new Set<ServerWebSocket<SocketData>>()
-let rooms = new Map<
-  string,
-  { pointsHidden: boolean; players: Set<ServerWebSocket<SocketData>> }
->()
+let rooms = new Map<string, RoomData>()
 let playerPoints: Record<string, Record<string, number>> = {}
-let isHidden = true
 
 function pingClient() {
-  console.log('ds')
   const socketHeartbeat = setInterval(() => {
     if (wsConnections.size === 0) {
       console.log('No players detected, stopping pings')
@@ -49,8 +51,9 @@ const server = serve<SocketData>({
       Math.random().toString(36).substring(2, 36)
     const playerId = Math.random().toString(36).substring(2, 36)
     const connectionType = new URL(req.url).searchParams.get('connectionType')
-    const isHost = connectionType === 'create'
+    const isHost = connectionType === 'CREATE'
     const isAlive = true
+    const hasVoted = false
 
     server.upgrade(req, {
       data: {
@@ -60,6 +63,7 @@ const server = serve<SocketData>({
         connectionType,
         isHost,
         isAlive,
+        hasVoted,
       },
     })
 
@@ -70,23 +74,28 @@ const server = serve<SocketData>({
   websocket: {
     open(ws) {
       console.log(`Opened WebSocket Connection with ${ws.data.channelId}`)
-      if (ws.data.connectionType === 'join' && rooms.has(ws.data.channelId)) {
-        console.log('Joining room')
-        rooms.get(ws.data.channelId)?.players.add(ws)
-      } else if (ws.data.connectionType === 'create') {
-        console.log('Creating room')
-        rooms.set(ws.data.channelId, {
-          pointsHidden: true,
-          players: new Set([ws]),
-        })
-      } else {
-        console.log('error?')
-        ws.send(
-          JSON.stringify({
-            error: 'Room does not exist',
+      switch (ws.data.connectionType) {
+        case 'CREATE':
+          console.log('Creating room')
+          rooms.set(ws.data.channelId, {
+            pointsHidden: true,
+            players: new Set([ws]),
           })
-        )
-        return
+          break
+        case 'JOIN':
+          console.log('Joining room')
+          if (!rooms.has(ws.data.channelId)) {
+            rooms.get(ws.data.channelId)?.players.add(ws)
+            ws.send(
+              JSON.stringify({
+                error: 'Room does not exist',
+              })
+            )
+            return
+          } else {
+            rooms.get(ws.data.channelId)?.players.add(ws)
+          }
+          break
       }
 
       wsConnections.add(ws)
@@ -100,6 +109,8 @@ const server = serve<SocketData>({
       ).map((client) => ({
         playerId: client.data.playerId,
         playerName: client.data.playerName,
+        hasVoted: client.data.hasVoted,
+        isHost: client.data.isHost,
       }))
       console.log(players)
 
@@ -135,14 +146,20 @@ const server = serve<SocketData>({
       const data = JSON.parse(message as string)
       console.log('Received incoming message: ', data)
       let players
+      const room = rooms.get(ws.data.channelId)
 
       switch (data.type) {
         case 'CHANGE_POINT_VALUE':
           console.log('changing point value')
+          ws.data.hasVoted = true
+          ws.data.selectedCardValue = data.payload.cardValue
           players = Array.from(rooms.get(ws.data.channelId)?.players || []).map(
             (client) => ({
               playerId: client.data.playerId,
               playerName: client.data.playerName,
+              hasVoted: client.data.hasVoted,
+              isHost: client.data.isHost,
+              selectedCardValue: client.data.selectedCardValue,
             })
           )
 
@@ -153,16 +170,27 @@ const server = serve<SocketData>({
           break
         case 'REVEAL_VOTES':
           console.log('revealing votes')
-          const room = rooms.get(ws.data.channelId)
           if (!room) return
           room.pointsHidden = false
           break
         case 'RESET_VOTES':
           console.log('resetting votes')
-          const room2 = rooms.get(ws.data.channelId)
-          if (!room2) return
-          room2.pointsHidden = true
+          if (!room) return
+          room.pointsHidden = true
           playerPoints[ws.data.channelId] = {}
+          rooms.get(ws.data.channelId)?.players.forEach((client) => {
+            client.data.hasVoted = false
+            client.data.selectedCardValue = -1
+          })
+          players = Array.from(rooms.get(ws.data.channelId)?.players || []).map(
+            (client) => ({
+              playerId: client.data.playerId,
+              playerName: client.data.playerName,
+              hasVoted: false,
+              isHost: client.data.isHost,
+              selectedCardValue: client.data.selectedCardValue,
+            })
+          )
           break
       }
 
@@ -199,6 +227,8 @@ const server = serve<SocketData>({
       ).map((client) => ({
         playerId: client.data.playerId,
         playerName: client.data.playerName,
+        hasVoted: client.data.hasVoted,
+        isHost: client.data.isHost,
       }))
 
       if (rooms.get(ws.data.channelId)?.players.size === 0) {

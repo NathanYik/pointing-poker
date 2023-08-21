@@ -1,10 +1,4 @@
-import {
-  component$,
-  $,
-  noSerialize,
-  useComputed$,
-  useSignal,
-} from '@builder.io/qwik'
+import { component$, $, noSerialize, useSignal } from '@builder.io/qwik'
 import { type DocumentHead, useNavigate } from '@builder.io/qwik-city'
 import { syncWebSocketData } from '~/lib/websocket'
 import { API_URL } from '~/lib/url'
@@ -14,18 +8,13 @@ export default component$(() => {
   const nav = useNavigate()
   const store = usePointingPokerSession()
   const input = useSignal('')
-  const status = useComputed$(() => {
-    if (store.ws?.readyState === 1) return 'Connected'
-    if (store.ws?.readyState === 3) return 'Unable to open websocket'
-    return 'Not connected'
-  })
 
   const handleClick = $(async () => {
     if (!input.value) return
     const url = new URL(API_URL)
     url.searchParams.set('playerName', input.value)
     url.searchParams.set('channelId', store.channelId)
-    url.searchParams.set('connectionType', 'create')
+    url.searchParams.set('connectionType', 'CREATE')
     store.ws = noSerialize(new WebSocket(url))
 
     if (!store.ws) throw new Error('Failed to create websocket')
@@ -37,10 +26,9 @@ export default component$(() => {
 
   return (
     <>
-      <h1>Hmm...</h1>
+      <label for="name-input">Enter your name:</label>
+      <input id="name-input" type="text" bind:value={input} />
       <button onClick$={handleClick}>Create a Room</button>
-      <input type="text" bind:value={input} />
-      <p>{status.value}</p>
     </>
   )
 })
