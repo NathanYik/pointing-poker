@@ -2,6 +2,7 @@ import { component$, $, noSerialize, useSignal } from '@builder.io/qwik'
 import { type DocumentHead, useNavigate } from '@builder.io/qwik-city'
 import { syncWebSocketData } from '~/lib/websocket'
 import { API_URL } from '~/lib/url'
+import styles from './index.module.css'
 import { usePointingPokerSession } from '~/hooks/usePointingPokerSession'
 
 export default component$(() => {
@@ -25,11 +26,24 @@ export default component$(() => {
   })
 
   return (
-    <>
-      <label for="name-input">Enter your name:</label>
-      <input id="name-input" type="text" bind:value={input} />
-      <button onClick$={handleClick}>Create a Room</button>
-    </>
+    <div class={styles['name-input-section']}>
+      <h2>Whoo we have our own pointing poker app now!</h2>
+      <p>Create a room by entering your name</p>
+      <div class={styles['input-container']}>
+        <input
+          class={styles['name-input']}
+          id="name-input"
+          type="text"
+          bind:value={input}
+          placeholder=''
+          required
+        />
+        <label class={styles['name-label']} for="name-input">
+          Enter your name
+        </label>
+      </div>
+      <button onClick$={handleClick}>CREATE ROOM</button>
+    </div>
   )
 })
 

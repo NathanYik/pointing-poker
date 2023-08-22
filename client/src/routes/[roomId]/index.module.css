@@ -2,6 +2,7 @@
   display: flex;
   width: 100%;
   gap: 24px;
+  margin-bottom: 48px;
 }
 
 .pointing-area {
@@ -12,9 +13,42 @@
   gap: 24px;
 }
 
+.share-link-section {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.share-link {
+  cursor: pointer;
+}
+
+.input-container {
+  position: relative;
+  margin-bottom: 24px;
+}
+
+.name-input-section {
+  display: flex;
+  position: relative;
+  flex-direction: column;
+  align-items: center;
+}
+
+.players-section {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
 .players-list {
   display: flex;
   flex-direction: column;
+  gap: 4px;
+}
+
+.players-title {
+  margin: 0;
 }
 
 .cards-area {
@@ -23,34 +57,18 @@
   width: 100%;
 }
 
-h3 {
-}
-
-ul {
-  all: unset;
-  list-style: none;
-}
-
 .player-tag {
   display: flex;
-  width: 120px;
+  width: 200px;
   justify-content: space-between;
 }
 
-.host-button {
-  border-radius: 8px;
-  font-weight: bold;
-  cursor: pointer;
-  color: white;
-  background-color: dimgrey;
-  border: 0;
-  padding: 18px 32px;
-  width: auto;
-  box-shadow: 0 0 8px rgba(0, 0, 0, 0.2);
-  transition: background-color 0.2s ease-out;
+.error-section {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
 }
 
-.host-button:hover {
-  background-color: #333;
-  transition: background-color 0.2s ease-out;
+.error-title {
+  color: tomato;
 }

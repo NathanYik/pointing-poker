@@ -9,15 +9,13 @@ interface Props {
 
 export default component$<Props>(({ value, onClick }) => {
   const store = usePointingPokerSession()
+  const isSelected =
+    store.players.find((player) => player.playerId === store.playerId)
+      ?.selectedCardValue === value
   return (
     <div
       onClick$={onClick}
-      class={
-        store.players.find((player) => player.playerId === store.playerId)
-          ?.selectedCardValue === value
-          ? styles['selected-card']
-          : styles.card
-      }
+      class={`${styles.card} ${isSelected && styles['selected']}`}
     >
       <p>{value}</p>
     </div>

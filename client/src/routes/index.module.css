@@ -1,0 +1,11 @@
+.name-input-section {
+  display: flex;
+  position: relative;
+  flex-direction: column;
+  align-items: center;
+}
+
+.input-container {
+  position: relative;
+  margin-bottom: 24px;
+}

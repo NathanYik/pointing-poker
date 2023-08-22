@@ -84,16 +84,15 @@ const server = serve<SocketData>({
           break
         case 'JOIN':
           console.log('Joining room')
-          if (!rooms.has(ws.data.channelId)) {
+          if (rooms.has(ws.data.channelId)) {
             rooms.get(ws.data.channelId)?.players.add(ws)
+          } else {
             ws.send(
               JSON.stringify({
-                error: 'Room does not exist',
+                error: `Room ID: ${ws.data.channelId} does not exist`,
               })
             )
             return
-          } else {
-            rooms.get(ws.data.channelId)?.players.add(ws)
           }
           break
       }
