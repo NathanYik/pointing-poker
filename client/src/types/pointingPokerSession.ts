@@ -13,7 +13,7 @@ export interface PointingPokerSession {
   playerId: string
   channelId: string
   error?: string
-  playerPoints: Record<string, Record<string, number>>
+  playerPoints: Record<string, number>
   isHost: boolean
   isHidden: boolean
   hasVoted: boolean

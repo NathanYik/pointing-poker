@@ -123,7 +123,7 @@ const server = serve<SocketData>({
           playerId: ws.data.playerId,
           isHost: ws.data.isHost,
           players,
-          playerPoints,
+          playerPoints: playerPoints[ws.data.channelId] || {},
           isHidden: rooms.get(ws.data.channelId)?.pointsHidden,
         })
       )
@@ -132,7 +132,7 @@ const server = serve<SocketData>({
         JSON.stringify({
           channelId: ws.data.channelId,
           players,
-          playerPoints,
+          playerPoints: playerPoints[ws.data.channelId] || {},
           isHidden: rooms.get(ws.data.channelId)?.pointsHidden,
         })
       )
@@ -200,7 +200,7 @@ const server = serve<SocketData>({
           playerId: ws.data.playerId,
           isHost: ws.data.isHost,
           players,
-          playerPoints,
+          playerPoints: playerPoints[ws.data.channelId] || {},
           isHidden: rooms.get(ws.data.channelId)?.pointsHidden,
         })
       )
@@ -209,7 +209,7 @@ const server = serve<SocketData>({
         JSON.stringify({
           channelId: ws.data.channelId,
           players,
-          playerPoints,
+          playerPoints: playerPoints[ws.data.channelId] || {},
           isHidden: rooms.get(ws.data.channelId)?.pointsHidden,
         })
       )
@@ -242,7 +242,7 @@ const server = serve<SocketData>({
         JSON.stringify({
           channelId: ws.data.channelId,
           players,
-          playerPoints,
+          playerPoints: playerPoints[ws.data.channelId] || {},
         })
       )
     },

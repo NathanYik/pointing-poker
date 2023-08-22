@@ -8,6 +8,7 @@ import { socketMessage } from '~/lib/websocket'
 import { usePointingPokerSession } from '~/hooks/usePointingPokerSession'
 import CheckmarkIcon from '~/components/checkmarkIcon/checkmarkIcon'
 import InProgressIcon from '~/components/inProgressIcon/inProgressIcon'
+import PieChart from '~/components/pieChart/pieChart'
 
 export default component$(() => {
   const store = usePointingPokerSession()
@@ -78,21 +79,6 @@ export default component$(() => {
 
   return (
     <>
-      <div class={styles['share-link-section']}>
-        <h4>Click this link to copy and paste to others:</h4>
-        <p
-          class={styles['share-link']}
-          onClick$={$(() =>
-            navigator.clipboard
-              .writeText(location.url.href)
-              .then(() => (linkCopied.value = true))
-              .catch(() => console.log('boo'))
-          )}
-        >
-          {location.url.href}
-        </p>
-        <p>{linkCopied.value && 'Copied!'}</p>
-      </div>
       <div class={styles['game-area']}>
         <div class={styles['players-section']}>
           <h3 class={styles['players-title']}>Players:</h3>
@@ -111,7 +97,7 @@ export default component$(() => {
                       <InProgressIcon />
                     )
                   ) : (
-                    store.playerPoints?.[store.channelId]?.[player.playerId]
+                    store.playerPoints?.[player.playerId]
                   )}
                 </div>
               </li>
@@ -119,42 +105,66 @@ export default component$(() => {
           </ul>
         </div>
         <div class={styles['pointing-area']}>
-          <div class={styles['cards-area']}>
-            {cardValues.value.map((value, index) => (
-              <Card key={index} value={value} onClick={onClick(value)} />
-            ))}
+          <div class={styles['share-link-section']}>
+            <h4>
+              {linkCopied.value
+                ? 'Copied!'
+                : 'Click this link to copy and paste to others:'}
+            </h4>
+            <p
+              class={styles['share-link']}
+              onClick$={$(() =>
+                navigator.clipboard
+                  .writeText(location.url.href)
+                  .then(() => (linkCopied.value = true))
+                  .catch(() => console.log('boo'))
+              )}
+            >
+              {location.url.href}
+            </p>
           </div>
+          {store.isHidden ? (
+            <div class={styles['cards-area']}>
+              {cardValues.value.map((value, index) => (
+                <Card key={index} value={value} onClick={onClick(value)} />
+              ))}
+            </div>
+          ) : (
+            <div class={styles['pie-chart']}>
+              <PieChart />
+            </div>
+          )}
+          {store.isHost && (
+            <>
+              {store.isHidden ? (
+                <button
+                  onClick$={() => {
+                    store.ws?.send(
+                      socketMessage({
+                        type: 'REVEAL_VOTES',
+                      })
+                    )
+                  }}
+                >
+                  REVEAL ESTIMATES
+                </button>
+              ) : (
+                <button
+                  onClick$={() => {
+                    store.ws?.send(
+                      socketMessage({
+                        type: 'RESET_VOTES',
+                      })
+                    )
+                  }}
+                >
+                  START NEW ESTIMATION ROUND
+                </button>
+              )}
+            </>
+          )}
         </div>
       </div>
-      {store.isHost && (
-        <>
-          {store.isHidden ? (
-            <button
-              onClick$={() =>
-                store.ws?.send(
-                  socketMessage({
-                    type: 'REVEAL_VOTES',
-                  })
-                )
-              }
-            >
-              REVEAL ESTIMATES
-            </button>
-          ) : (
-            <button
-              onClick$={() =>
-                store.ws?.send(
-                  socketMessage({
-                    type: 'RESET_VOTES',
-                  })
-                )
-              }
-            >
-              START NEW ESTIMATION ROUND
-            </button>
-          )}
-        </>
-      )}
     </>
   )
 })

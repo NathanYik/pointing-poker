@@ -12,6 +12,7 @@ body {
   padding: 0;
   margin: 0;
   line-height: inherit;
+  overflow-y: hidden;
 }
 
 main {
@@ -26,7 +27,7 @@ header {
   box-shadow: 0 0 8px black;
   justify-content: center;
   background-color: #333;
-  color: #efefef;
+  color: white;
 }
 
 main {
@@ -61,10 +62,6 @@ ul {
 }
 
 input {
-  position: relative;
-}
-
-input {
   padding: 32px 16px 8px;
   box-shadow: 0 0 8px rgba(0, 0, 0, 0.2);
   border-radius: 8px;
@@ -82,7 +79,7 @@ input:focus {
   vertical-align: bottom;
 }
 
-input:placeholder-shown + label {
+input + label {
   display: flex;
   position: absolute;
   color: #666;
@@ -96,35 +93,13 @@ input:placeholder-shown + label {
   border-radius: 8px;
 }
 
-input:focus:not(placeholder-shown) + label {
-  display: flex;
-  position: absolute;
-  color: #666;
-  width: 100%;
-  height: 100%;
-  align-items: center;
-  padding: 0 24px;
-  pointer-events: none;
-  top: 0;
-  transition: all 0.2s ease-out;
-  border-radius: 8px;
+input:focus + label {
   color: #999;
   transform: translate(-38px, -16px) scale(0.75);
   transition: all 0.2s ease-out;
 }
 
 input:valid + label {
-  display: flex;
-  position: absolute;
-  color: #666;
-  width: 100%;
-  height: 100%;
-  align-items: center;
-  padding: 0 24px;
-  pointer-events: none;
-  top: 0;
-  transition: all 0.2s ease-out;
-  border-radius: 8px;
   color: #999;
   transform: translate(-38px, -16px) scale(0.75);
   transition: all 0.2s ease-out;
