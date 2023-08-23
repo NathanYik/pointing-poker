@@ -79,7 +79,7 @@ export default component$(() => {
               Enter your name
             </label>
           </form>
-          <button onClick$={handleSubmit}>JOIN ROOM</button>
+          <button form='input-container'>JOIN ROOM</button>
         </div>
       </>
     )
