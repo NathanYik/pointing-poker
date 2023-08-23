@@ -12,12 +12,6 @@ body {
   padding: 0;
   margin: 0;
   line-height: inherit;
-  overflow-y: hidden;
-}
-
-main {
-  padding: 0 80px;
-  display: block;
 }
 
 header {
@@ -34,8 +28,15 @@ main {
   display: flex;
   flex-direction: column;
   height: 100%;
+  padding: 0 80px;
   align-items: center;
   justify-content: center;
+}
+
+@media (max-width: 768px) {
+  main {
+    padding: 0 24px;
+  }
 }
 
 button {
@@ -93,12 +94,7 @@ input + label {
   border-radius: 8px;
 }
 
-input:focus + label {
-  color: #999;
-  transform: translate(-38px, -16px) scale(0.75);
-  transition: all 0.2s ease-out;
-}
-
+input:focus + label,
 input:valid + label {
   color: #999;
   transform: translate(-38px, -16px) scale(0.75);

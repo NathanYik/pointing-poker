@@ -1,6 +1,7 @@
 import { component$, useSignal, useVisibleTask$ } from '@builder.io/qwik'
 import { Chart } from 'chart.js/auto'
 import { usePointingPokerSession } from '~/hooks/usePointingPokerSession'
+import styles from './pieChart.module.css'
 
 export default component$(() => {
   const store = usePointingPokerSession()
@@ -51,5 +52,9 @@ export default component$(() => {
     })
     cleanup(() => chart.destroy())
   })
-  return <canvas ref={canvasRef}></canvas>
+  return (
+    <div class={styles['pie-chart-container']}>
+      <canvas class={styles['pie-chart']} ref={canvasRef}></canvas>
+    </div>
+  )
 })

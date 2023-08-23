@@ -17,7 +17,7 @@ export default component$(() => {
   const input = useSignal('')
   const linkCopied = useSignal(false)
 
-  const handleClick = $(() => {
+  const handleSubmit = $(() => {
     if (!input.value) return
 
     const url = new URL(API_URL)
@@ -59,19 +59,27 @@ export default component$(() => {
           </div>
         )}
         <div class={styles['name-input-section']}>
-          <h2>Join the pointing poker session</h2>
+          <h2 class={styles['input-title']}>Join the pointing poker session</h2>
           <p>Join the room by entering your name</p>
-          <div class={styles['input-container']}>
+          <form
+            id="input-container"
+            preventdefault:submit
+            onSubmit$={handleSubmit}
+            class={styles['input-container']}
+          >
             <input
-              type="text"
+              class={styles['name-input']}
               id="name-input"
+              type="text"
               bind:value={input}
-              required
               placeholder=""
+              required
             />
-            <label for="name-input">Enter your name</label>
-          </div>
-          <button onClick$={handleClick}>JOIN ROOM</button>
+            <label class={styles['name-label']} for="name-input">
+              Enter your name
+            </label>
+          </form>
+          <button onClick$={handleSubmit}>JOIN ROOM</button>
         </div>
       </>
     )
@@ -130,9 +138,7 @@ export default component$(() => {
               ))}
             </div>
           ) : (
-            <div class={styles['pie-chart']}>
-              <PieChart />
-            </div>
+            <PieChart />
           )}
           {store.isHost && (
             <>

@@ -13,6 +13,12 @@
   box-shadow: 0 0 10px rgba(0, 0, 0, 0.2);
   transition: all 0.1s ease-out;
 }
+@media (max-width: 768px) {
+  .card {
+    height: 80px;
+    width: 80px;
+  }
+}
 
 .selected {
   background-color: #333;

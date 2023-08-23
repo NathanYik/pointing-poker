@@ -10,8 +10,10 @@ export default component$(() => {
   const store = usePointingPokerSession()
   const input = useSignal('')
 
-  const handleClick = $(async () => {
+  const handleSubmit = $(async () => {
+    console.log('first')
     if (!input.value) return
+    console.log('second')
     const url = new URL(API_URL)
     url.searchParams.set('playerName', input.value)
     url.searchParams.set('channelId', store.channelId)
@@ -19,6 +21,7 @@ export default component$(() => {
     store.ws = noSerialize(new WebSocket(url))
 
     if (!store.ws) throw new Error('Failed to create websocket')
+    console.log('third')
     store.ws.onmessage = async (event) => {
       syncWebSocketData(store, event)
       nav(`/${JSON.parse(event.data).channelId}`)
@@ -27,22 +30,31 @@ export default component$(() => {
 
   return (
     <div class={styles['name-input-section']}>
-      <h2>Whoo we have our own pointing poker app now!</h2>
+      <h2 class={styles['input-title']}>
+        Whoo we have our own pointing poker app now!
+      </h2>
       <p>Create a room by entering your name</p>
-      <div class={styles['input-container']}>
+      <form
+        id="input-container"
+        preventdefault:submit
+        onSubmit$={handleSubmit}
+        class={styles['input-container']}
+      >
         <input
           class={styles['name-input']}
           id="name-input"
           type="text"
           bind:value={input}
-          placeholder=''
+          placeholder=""
           required
         />
         <label class={styles['name-label']} for="name-input">
           Enter your name
         </label>
-      </div>
-      <button onClick$={handleClick}>CREATE ROOM</button>
+      </form>
+      <button form="input-container" type="submit">
+        CREATE ROOM
+      </button>
     </div>
   )
 })

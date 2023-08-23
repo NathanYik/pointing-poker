@@ -1,9 +1,16 @@
 .game-area {
   display: flex;
   max-width: 1024px;
+  width: 100%;
   gap: 24px;
   margin-bottom: 48px;
   margin: 0 80px;
+}
+@media (max-width: 768px) {
+  .game-area {
+    flex-direction: column;
+    margin: 0 24px;
+  }
 }
 
 .pointing-area {
@@ -18,6 +25,15 @@
   display: flex;
   align-items: center;
   gap: 8px;
+}
+
+@media (max-width: 768px) {
+  .share-link-section {
+    flex-direction: column;
+  }
+  .share-link-section > * {
+    margin: 0;
+  }
 }
 
 .share-link {
@@ -42,6 +58,12 @@
   gap: 16px;
   margin-top: 88px;
 }
+@media (max-width: 768px) {
+  .players-section {
+    margin-top: 24px;
+    align-items: center;
+  }
+}
 
 .players-list {
   display: flex;
@@ -51,6 +73,10 @@
 
 .players-title {
   margin: 0;
+}
+
+.input-title {
+  text-align: center;
 }
 
 .cards-area {
@@ -74,12 +100,4 @@
 
 .error-title {
   color: tomato;
-}
-
-.pie-chart {
-  display: flex;
-  justify-content: center;
-  width: 800px;
-  height: 500px;
-  margin-bottom: 48px;
 }
