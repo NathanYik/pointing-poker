@@ -11,9 +11,7 @@ export default component$(() => {
   const input = useSignal('')
 
   const handleSubmit = $(async () => {
-    console.log('first')
     if (!input.value) return
-    console.log('second')
     const url = new URL(API_URL)
     url.searchParams.set('playerName', input.value)
     url.searchParams.set('channelId', store.channelId)
@@ -21,7 +19,6 @@ export default component$(() => {
     store.ws = noSerialize(new WebSocket(url))
 
     if (!store.ws) throw new Error('Failed to create websocket')
-    console.log('third')
     store.ws.onmessage = async (event) => {
       syncWebSocketData(store, event)
       nav(`/${JSON.parse(event.data).channelId}`)
