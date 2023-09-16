@@ -47,7 +47,7 @@ export default component$(() => {
                 <NoVoteIcon />
               )}
             </li>
-            {isHovering.value === player.playerId && (
+            {isHovering.value === player.playerId && store.isHost && (
               <button
                 class="hovering"
                 onClick$={() => {
