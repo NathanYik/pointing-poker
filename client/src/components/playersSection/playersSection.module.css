@@ -1,0 +1,34 @@
+.player-points {
+  width: 24px;
+  height: 24px;
+  text-align: center;
+}
+
+.player-tag {
+  display: flex;
+  width: 200px;
+  justify-content: space-between;
+}
+
+.players-section {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  margin-top: 88px;
+}
+@media (max-width: 768px) {
+  .players-section {
+    margin-top: 24px;
+    align-items: center;
+  }
+}
+
+.players-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.players-title {
+  margin: 0;
+}

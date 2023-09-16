@@ -52,28 +52,6 @@
   align-items: center;
 }
 
-.players-section {
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-  margin-top: 88px;
-}
-@media (max-width: 768px) {
-  .players-section {
-    margin-top: 24px;
-    align-items: center;
-  }
-}
-
-.players-list {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-
-.players-title {
-  margin: 0;
-}
 
 .input-title {
   text-align: center;
@@ -86,11 +64,6 @@
   width: 100%;
 }
 
-.player-tag {
-  display: flex;
-  width: 200px;
-  justify-content: space-between;
-}
 
 .error-section {
   display: flex;

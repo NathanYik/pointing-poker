@@ -28,6 +28,7 @@ module.exports = {
     '@typescript-eslint/no-non-null-assertion': 'off',
     '@typescript-eslint/no-empty-interface': 'off',
     '@typescript-eslint/no-namespace': 'off',
+    '@typescript-eslint/no-extra-semi': 'off',
     '@typescript-eslint/no-empty-function': 'off',
     '@typescript-eslint/no-this-alias': 'off',
     '@typescript-eslint/ban-types': 'off',
@@ -38,4 +39,4 @@ module.exports = {
     '@typescript-eslint/no-unused-vars': ['error'],
     '@typescript-eslint/consistent-type-imports': 'warn',
   },
-};
+}

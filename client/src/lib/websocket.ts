@@ -6,15 +6,9 @@ export const syncWebSocketData = (
 ) => {
   const data = JSON.parse(event.data)
   console.log('WebSocket Message Received: ', data)
-  store.channelId = data.channelId || store.channelId
-  store.playerName = data.playerName || store.playerName
-  store.players = data.players || store.players
-  store.playerId = data.playerId || store.playerId
-  store.playerPoints = data.playerPoints || store.playerPoints
-  store.isHost = data.isHost || store.isHost
-  store.error = data.error || store.error
-  store.isHidden = data.isHidden === undefined ? store.isHidden : data.isHidden
-  store.hasVoted = data.hasVoted === undefined ? store.hasVoted : data.hasVoted
+  Object.keys(data).forEach((key) => {
+    ;(store as any)[key] = data[key]
+  })
   console.log(store)
 }
 

@@ -6,9 +6,8 @@ import { syncWebSocketData } from '~/lib/websocket'
 import { API_URL } from '~/lib/url'
 import { socketMessage } from '~/lib/websocket'
 import { usePointingPokerSession } from '~/hooks/usePointingPokerSession'
-import CheckmarkIcon from '~/components/checkmarkIcon/checkmarkIcon'
-import InProgressIcon from '~/components/inProgressIcon/inProgressIcon'
 import PieChart from '~/components/pieChart/pieChart'
+import PlayersSection from '~/components/playersSection/playersSection'
 
 export default component$(() => {
   const store = usePointingPokerSession()
@@ -28,7 +27,7 @@ export default component$(() => {
     store.ws = noSerialize(new WebSocket(url))
 
     if (!store.ws) throw new Error('Failed to create websocket')
-    store.ws.onmessage = async (event) => {
+    store.ws.onmessage = (event) => {
       syncWebSocketData(store, event)
     }
   })
@@ -79,7 +78,7 @@ export default component$(() => {
               Enter your name
             </label>
           </form>
-          <button form='input-container'>JOIN ROOM</button>
+          <button form="input-container">JOIN ROOM</button>
         </div>
       </>
     )
@@ -88,30 +87,7 @@ export default component$(() => {
   return (
     <>
       <div class={styles['game-area']}>
-        <div class={styles['players-section']}>
-          <h3 class={styles['players-title']}>Players:</h3>
-          <ul class={styles['players-list']}>
-            {store.players?.map((player, index) => (
-              <li key={index}>
-                <div class={styles['player-tag']}>
-                  <div class={styles['player-name']}>
-                    {player.isHost && '👑 '}
-                    {player.playerName}:{' '}
-                  </div>
-                  {store.isHidden ? (
-                    player.hasVoted ? (
-                      <CheckmarkIcon />
-                    ) : (
-                      <InProgressIcon />
-                    )
-                  ) : (
-                    store.playerPoints?.[player.playerId]
-                  )}
-                </div>
-              </li>
-            ))}
-          </ul>
-        </div>
+        <PlayersSection />
         <div class={styles['pointing-area']}>
           <div class={styles['share-link-section']}>
             <h4>

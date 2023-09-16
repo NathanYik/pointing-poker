@@ -76,7 +76,15 @@ const server = serve<SocketData>({
       console.log(`Opened WebSocket Connection with ${ws.data.channelId}`)
       switch (ws.data.connectionType) {
         case 'CREATE':
-          console.log('Creating room')
+          console.log(`Creating room: ${ws.data.channelId}`)
+          if (rooms.has(ws.data.channelId)) {
+            ws.send(
+              JSON.stringify({
+                error: `Room ID: ${ws.data.channelId} already exists`,
+              })
+            )
+            return
+          }
           rooms.set(ws.data.channelId, {
             pointsHidden: true,
             players: new Set([ws]),
@@ -113,7 +121,6 @@ const server = serve<SocketData>({
       }))
       console.log(players)
 
-      console.log(rooms.get(ws.data.channelId)?.players)
       ws.subscribe(ws.data.channelId)
 
       ws.send(
@@ -152,16 +159,6 @@ const server = serve<SocketData>({
           console.log('changing point value')
           ws.data.hasVoted = true
           ws.data.selectedCardValue = data.payload.cardValue
-          players = Array.from(rooms.get(ws.data.channelId)?.players || []).map(
-            (client) => ({
-              playerId: client.data.playerId,
-              playerName: client.data.playerName,
-              hasVoted: client.data.hasVoted,
-              isHost: client.data.isHost,
-              selectedCardValue: client.data.selectedCardValue,
-            })
-          )
-
           playerPoints[ws.data.channelId] =
             playerPoints[ws.data.channelId] || {}
           playerPoints[ws.data.channelId][ws.data.playerId] =
@@ -181,17 +178,29 @@ const server = serve<SocketData>({
             client.data.hasVoted = false
             client.data.selectedCardValue = -1
           })
-          players = Array.from(rooms.get(ws.data.channelId)?.players || []).map(
-            (client) => ({
-              playerId: client.data.playerId,
-              playerName: client.data.playerName,
-              hasVoted: false,
-              isHost: client.data.isHost,
-              selectedCardValue: client.data.selectedCardValue,
-            })
-          )
+          break
+        case 'CHANGE_HOST':
+          console.log('changing host')
+          rooms.get(ws.data.channelId)?.players.forEach((client) => {
+            client.data.isHost = client.data.playerId === data.payload.playerId
+            client.send(
+              JSON.stringify({
+                isHost: client.data.isHost,
+              })
+            )
+          })
           break
       }
+
+      players = Array.from(rooms.get(ws.data.channelId)?.players || []).map(
+        (client) => ({
+          playerId: client.data.playerId,
+          playerName: client.data.playerName,
+          hasVoted: client.data.hasVoted,
+          isHost: client.data.isHost,
+          selectedCardValue: client.data.selectedCardValue,
+        })
+      )
 
       ws.send(
         JSON.stringify({
@@ -218,8 +227,6 @@ const server = serve<SocketData>({
       console.log(`Closing WebSocket Connection with ${ws.data.playerId}`)
       wsConnections.delete(ws)
 
-      console.log('players: ', wsConnections)
-
       rooms.get(ws.data.channelId)?.players.delete(ws)
       const players = Array.from(
         rooms.get(ws.data.channelId)?.players || []
@@ -229,6 +236,7 @@ const server = serve<SocketData>({
         hasVoted: client.data.hasVoted,
         isHost: client.data.isHost,
       }))
+      console.log('players: ', players)
 
       if (rooms.get(ws.data.channelId)?.players.size === 0) {
         console.log(`Deleting room ${ws.data.channelId}`)
