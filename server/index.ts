@@ -12,6 +12,8 @@ interface SocketData {
   isHost: boolean
   isAlive: boolean
   hasVoted: boolean
+  timeoutId: Timer | undefined
+  connectionActive: boolean
   selectedCardValue: number | undefined
 }
 
@@ -44,16 +46,21 @@ const server = serve<SocketData>({
   port: 3000,
   fetch(req, server) {
     console.log(`Received socket request from ${req.url}`)
+    const url = new URL(req.url)
 
-    const playerName = new URL(req.url).searchParams.get('playerName')
+    const playerName = url.searchParams.get('playerName')
     const channelId =
-      new URL(req.url).searchParams.get('channelId') ||
+      url.searchParams.get('channelId') ||
       Math.random().toString(36).substring(2, 36)
-    const playerId = Math.random().toString(36).substring(2, 36)
-    const connectionType = new URL(req.url).searchParams.get('connectionType')
+    const playerId =
+      url.searchParams.get('playerId') ||
+      Math.random().toString(36).substring(2, 36)
+    const connectionType = url.searchParams.get('connectionType')
     const isHost = connectionType === 'CREATE'
     const isAlive = true
     const hasVoted = false
+    const timeoutId = undefined
+    const connectionActive = true
 
     server.upgrade(req, {
       data: {
@@ -64,6 +71,8 @@ const server = serve<SocketData>({
         isHost,
         isAlive,
         hasVoted,
+        timeoutId,
+        connectionActive,
       },
     })
 
@@ -103,6 +112,29 @@ const server = serve<SocketData>({
             return
           }
           break
+        case 'REJOIN':
+          console.log('Rejoining room')
+          if (rooms.has(ws.data.channelId)) {
+            console.log('Room exists')
+            rooms.get(ws.data.channelId)?.players.forEach((client) => {
+              if (client.data.playerId === ws.data.playerId) {
+                clearTimeout(client.data.timeoutId)
+                ws.data = client.data
+                ws.data.connectionActive = true
+                rooms.get(ws.data.channelId)?.players.delete(client)
+              }
+            })
+            rooms.get(ws.data.channelId)?.players.add(ws)
+          } else {
+            console.log("Room does not exist, can't rejoin")
+            ws.send(
+              JSON.stringify({
+                error: `Room ID: ${ws.data.channelId} does not exist`,
+              })
+            )
+            return
+          }
+          break
       }
 
       wsConnections.add(ws)
@@ -118,6 +150,8 @@ const server = serve<SocketData>({
         playerName: client.data.playerName,
         hasVoted: client.data.hasVoted,
         isHost: client.data.isHost,
+        selectedCardValue: client.data.selectedCardValue,
+        connectionActive: client.data.connectionActive,
       }))
       console.log(players)
 
@@ -153,6 +187,7 @@ const server = serve<SocketData>({
       console.log('Received incoming message: ', data)
       let players
       const room = rooms.get(ws.data.channelId)
+      if (!room) return
 
       switch (data.type) {
         case 'CHANGE_POINT_VALUE':
@@ -166,22 +201,20 @@ const server = serve<SocketData>({
           break
         case 'REVEAL_VOTES':
           console.log('revealing votes')
-          if (!room) return
           room.pointsHidden = false
           break
         case 'RESET_VOTES':
           console.log('resetting votes')
-          if (!room) return
           room.pointsHidden = true
           playerPoints[ws.data.channelId] = {}
-          rooms.get(ws.data.channelId)?.players.forEach((client) => {
+          room.players.forEach((client) => {
             client.data.hasVoted = false
             client.data.selectedCardValue = -1
           })
           break
         case 'CHANGE_HOST':
           console.log('changing host')
-          rooms.get(ws.data.channelId)?.players.forEach((client) => {
+          room.players.forEach((client) => {
             client.data.isHost = client.data.playerId === data.payload.playerId
             client.send(
               JSON.stringify({
@@ -199,6 +232,7 @@ const server = serve<SocketData>({
           hasVoted: client.data.hasVoted,
           isHost: client.data.isHost,
           selectedCardValue: client.data.selectedCardValue,
+          connectionActive: client.data.connectionActive,
         })
       )
 
@@ -225,26 +259,51 @@ const server = serve<SocketData>({
     },
     close(ws) {
       console.log(`Closing WebSocket Connection with ${ws.data.playerId}`)
+      let players
       wsConnections.delete(ws)
+      ws.data.connectionActive = false
 
-      rooms.get(ws.data.channelId)?.players.delete(ws)
-      const players = Array.from(
-        rooms.get(ws.data.channelId)?.players || []
-      ).map((client) => ({
-        playerId: client.data.playerId,
-        playerName: client.data.playerName,
-        hasVoted: client.data.hasVoted,
-        isHost: client.data.isHost,
-      }))
-      console.log('players: ', players)
+      ws.data.timeoutId = setTimeout(() => {
+        const room = rooms.get(ws.data.channelId)
 
-      if (rooms.get(ws.data.channelId)?.players.size === 0) {
-        console.log(`Deleting room ${ws.data.channelId}`)
-        rooms.delete(ws.data.channelId)
-        return
-      }
+        room?.players.delete(ws)
 
-      ws.unsubscribe(ws.data.channelId)
+        players = Array.from(room?.players || []).map((client) => ({
+          playerId: client.data.playerId,
+          playerName: client.data.playerName,
+          hasVoted: client.data.hasVoted,
+          isHost: client.data.isHost,
+          selectedCardValue: client.data.selectedCardValue,
+          connectionActive: client.data.connectionActive,
+        }))
+        console.log('players: ', players)
+
+        if (room?.players.size === 0) {
+          console.log(`Deleting room ${ws.data.channelId}`)
+          rooms.delete(ws.data.channelId)
+          return
+        }
+
+        ws.unsubscribe(ws.data.channelId)
+        server.publish(
+          ws.data.channelId,
+          JSON.stringify({
+            channelId: ws.data.channelId,
+            players,
+            playerPoints: playerPoints[ws.data.channelId] || {},
+          })
+        )
+      }, 45000)
+      players = Array.from(rooms.get(ws.data.channelId)?.players || []).map(
+        (client) => ({
+          playerId: client.data.playerId,
+          playerName: client.data.playerName,
+          hasVoted: client.data.hasVoted,
+          isHost: client.data.isHost,
+          selectedCardValue: client.data.selectedCardValue,
+          connectionActive: client.data.connectionActive,
+        })
+      )
       server.publish(
         ws.data.channelId,
         JSON.stringify({

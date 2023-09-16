@@ -1,4 +1,10 @@
-import { $, component$, noSerialize, useSignal } from '@builder.io/qwik'
+import {
+  $,
+  component$,
+  noSerialize,
+  useSignal,
+  useVisibleTask$,
+} from '@builder.io/qwik'
 import { useLocation, type DocumentHead } from '@builder.io/qwik-city'
 import styles from './index.module.css'
 import Card from '~/components/card/card'
@@ -15,6 +21,24 @@ export default component$(() => {
   const cardValues = useSignal([0, 1, 2, 3, 5, 8, 13, 21, 34, 55])
   const input = useSignal('')
   const linkCopied = useSignal(false)
+
+  useVisibleTask$(() => {
+    const previousSessionData = JSON.parse(
+      localStorage.getItem(location.url.pathname.split('/')[1]) as string
+    )
+    if (previousSessionData && !store.ws) {
+      const url = new URL(API_URL)
+      url.searchParams.set('connectionType', 'REJOIN')
+      url.searchParams.set('playerId', previousSessionData.playerId)
+      url.searchParams.set('channelId', previousSessionData.channelId)
+      store.ws = noSerialize(new WebSocket(url))
+
+      if (!store.ws) throw new Error('Failed to create websocket')
+      store.ws.onmessage = (event) => {
+        syncWebSocketData(store, event)
+      }
+    }
+  })
 
   const handleSubmit = $(() => {
     if (!input.value) return
@@ -45,7 +69,7 @@ export default component$(() => {
       )
     )
 
-  if (!store.playerName) {
+  if (!store.ws) {
     return (
       <>
         {store.error && (

@@ -4,6 +4,10 @@
   text-align: center;
 }
 
+.player-disconnected {
+  opacity: 0.5;
+}
+
 .player-tag {
   display: flex;
   width: 200px;

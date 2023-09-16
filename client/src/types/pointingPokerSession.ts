@@ -8,6 +8,7 @@ export interface PointingPokerSession {
     hasVoted: boolean
     isHost: boolean
     selectedCardValue: number
+    connectionActive: boolean
   }[]
   playerName: string
   playerId: string

@@ -28,7 +28,12 @@ export default component$(() => {
             })}
             key={index}
           >
-            <li class={styles['player-tag']} key={index}>
+            <li
+              class={`${styles['player-tag']} ${
+                !player.connectionActive && styles['player-disconnected']
+              }`}
+              key={index}
+            >
               <div class={styles['player-name']}>
                 {player.isHost && '👑 '}
                 {player.playerName}:{' '}

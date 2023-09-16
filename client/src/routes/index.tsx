@@ -9,11 +9,9 @@ export default component$(() => {
   const nav = useNavigate()
   const store = usePointingPokerSession()
   const input = useSignal('')
-  const disabled = useSignal(false)
 
   const handleSubmit = $(async () => {
     if (!input.value) return
-    disabled.value = true
     const url = new URL(API_URL)
     url.searchParams.set('playerName', input.value)
     url.searchParams.set('connectionType', 'CREATE')
@@ -27,7 +25,14 @@ export default component$(() => {
     const intervalID = setInterval(() => {
       if (store?.ws?.readyState === 1 && !store.error && store.channelId) {
         clearInterval(intervalID)
-        disabled.value = false
+        console.log(localStorage)
+        window.localStorage.setItem(
+          store.channelId,
+          JSON.stringify({
+            channelId: store.channelId,
+            playerId: store.playerId,
+          })
+        )
         nav(store.channelId)
       }
     }, 5)
@@ -62,7 +67,7 @@ export default component$(() => {
           Enter your name
         </label>
       </form>
-      <button disabled={disabled.value} form="input-container" type="submit">
+      <button form="input-container" type="submit">
         CREATE ROOM
       </button>
     </div>
