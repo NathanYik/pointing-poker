@@ -19,9 +19,8 @@ export default component$(() => {
     store.channelId = ''
 
     if (!store.ws) throw new Error('Failed to create websocket')
-    store.ws.onmessage = (event) => {
-      syncWebSocketData(store, event)
-    }
+    store.ws.onmessage = (event) => syncWebSocketData(store, event)
+
     const intervalID = setInterval(() => {
       if (store?.ws?.readyState === 1 && !store.error && store.channelId) {
         clearInterval(intervalID)

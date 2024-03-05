@@ -4,11 +4,12 @@ export const syncWebSocketData = (
   store: PointingPokerSession,
   event: MessageEvent
 ) => {
-  const data = JSON.parse(event.data)
+  const data: PointingPokerSession = JSON.parse(event.data)
   console.log('WebSocket Message Received: ', data)
-  Object.keys(data).forEach((key) => {
-    ;(store as any)[key] = data[key]
-  })
+  const dataKeys = Object.keys(data) as Array<keyof PointingPokerSession>
+
+  dataKeys.forEach((key) => (store[key] = data[key] as never))
+
   console.log(store)
 }
 

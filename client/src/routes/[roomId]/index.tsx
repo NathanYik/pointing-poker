@@ -69,7 +69,7 @@ export default component$(() => {
       )
     )
 
-  if (!store.ws) {
+  if (!store.playerId) {
     return (
       <>
         {store.error && (

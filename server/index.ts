@@ -14,7 +14,7 @@ interface SocketData {
   hasVoted: boolean
   timeoutId: Timer | undefined
   connectionActive: boolean
-  selectedCardValue: number | undefined
+  selectedCardValue: number
 }
 
 interface RoomData {
@@ -25,6 +25,17 @@ interface RoomData {
 let wsConnections = new Set<ServerWebSocket<SocketData>>()
 let rooms = new Map<string, RoomData>()
 let playerPoints: Record<string, Record<string, number>> = {}
+
+function replacer(_: string, value: any) {
+  if (value instanceof Set) {
+    return Array.from(value).map((client) => client.data)
+  }
+  return value
+}
+
+function formatWebSocketMessage(data: any) {
+  return JSON.stringify(data, replacer)
+}
 
 function pingClient() {
   const socketHeartbeat = setInterval(() => {
@@ -39,7 +50,7 @@ function pingClient() {
       console.log('Sending ping to player ID:', ws.data.playerId)
       ws.ping()
     })
-  }, 55000)
+  }, 30000)
 }
 
 const server = serve<SocketData>({
@@ -48,31 +59,24 @@ const server = serve<SocketData>({
     console.log(`Received socket request from ${req.url}`)
     const url = new URL(req.url)
 
-    const playerName = url.searchParams.get('playerName')
-    const channelId =
-      url.searchParams.get('channelId') ||
-      Math.random().toString(36).substring(2, 36)
-    const playerId =
-      url.searchParams.get('playerId') ||
-      Math.random().toString(36).substring(2, 36)
     const connectionType = url.searchParams.get('connectionType')
-    const isHost = connectionType === 'CREATE'
-    const isAlive = true
-    const hasVoted = false
-    const timeoutId = undefined
-    const connectionActive = true
 
     server.upgrade(req, {
       data: {
-        channelId,
-        playerId,
-        playerName,
-        connectionType,
-        isHost,
-        isAlive,
-        hasVoted,
-        timeoutId,
-        connectionActive,
+        channelId:
+          url.searchParams.get('channelId') ||
+          Math.random().toString(36).substring(2, 36),
+        playerId:
+          url.searchParams.get('playerId') ||
+          Math.random().toString(36).substring(2, 36),
+        playerName: url.searchParams.get('playerName'),
+        connectionType: connectionType,
+        isHost: connectionType === 'CREATE',
+        isAlive: true,
+        hasVoted: false,
+        timeoutId: undefined,
+        connectionActive: true,
+        selectedCardValue: -1,
       },
     })
 
@@ -82,31 +86,33 @@ const server = serve<SocketData>({
   },
   websocket: {
     open(ws) {
-      console.log(`Opened WebSocket Connection with ${ws.data.channelId}`)
-      switch (ws.data.connectionType) {
+      const { channelId, playerId, connectionType, playerName, isHost } =
+        ws.data
+      console.log(`Opened WebSocket Connection with ${channelId}`)
+      switch (connectionType) {
         case 'CREATE':
-          console.log(`Creating room: ${ws.data.channelId}`)
-          if (rooms.has(ws.data.channelId)) {
+          console.log(`Creating room: ${channelId}`)
+          if (rooms.has(channelId)) {
             ws.send(
-              JSON.stringify({
-                error: `Room ID: ${ws.data.channelId} already exists`,
+              formatWebSocketMessage({
+                error: `Room ID: ${channelId} already exists`,
               })
             )
             return
           }
-          rooms.set(ws.data.channelId, {
+          rooms.set(channelId, {
             pointsHidden: true,
             players: new Set([ws]),
           })
           break
         case 'JOIN':
           console.log('Joining room')
-          if (rooms.has(ws.data.channelId)) {
-            rooms.get(ws.data.channelId)?.players.add(ws)
+          if (rooms.has(channelId)) {
+            rooms.get(channelId)?.players.add(ws)
           } else {
             ws.send(
-              JSON.stringify({
-                error: `Room ID: ${ws.data.channelId} does not exist`,
+              formatWebSocketMessage({
+                error: `Room ID: ${channelId} does not exist`,
               })
             )
             return
@@ -114,22 +120,38 @@ const server = serve<SocketData>({
           break
         case 'REJOIN':
           console.log('Rejoining room')
-          if (rooms.has(ws.data.channelId)) {
+          let foundPlayer = false
+          if (rooms.has(channelId)) {
+            const room = rooms.get(channelId)
             console.log('Room exists')
-            rooms.get(ws.data.channelId)?.players.forEach((client) => {
-              if (client.data.playerId === ws.data.playerId) {
+
+            room?.players.forEach((client) => {
+              if (client.data.playerId === playerId) {
                 clearTimeout(client.data.timeoutId)
                 ws.data = client.data
                 ws.data.connectionActive = true
-                rooms.get(ws.data.channelId)?.players.delete(client)
+                room?.players.delete(client)
+                foundPlayer = true
+                return
               }
             })
-            rooms.get(ws.data.channelId)?.players.add(ws)
+
+            if (!foundPlayer) {
+              console.log('Player session expired')
+              ws.send(
+                formatWebSocketMessage({
+                  error: `Player ID: ${playerId} does not exist in room ID: ${channelId}`,
+                })
+              )
+              return
+            }
+
+            room?.players.add(ws)
           } else {
             console.log("Room does not exist, can't rejoin")
             ws.send(
-              JSON.stringify({
-                error: `Room ID: ${ws.data.channelId} does not exist`,
+              formatWebSocketMessage({
+                error: `Room ID: ${channelId} does not exist`,
               })
             )
             return
@@ -137,44 +159,34 @@ const server = serve<SocketData>({
           break
       }
 
+      const room = rooms.get(channelId)
+
       wsConnections.add(ws)
       if (wsConnections.size === 1) {
         console.log('Players detected, starting pings')
         pingClient()
       }
 
-      const players = Array.from(
-        rooms.get(ws.data.channelId)?.players || []
-      ).map((client) => ({
-        playerId: client.data.playerId,
-        playerName: client.data.playerName,
-        hasVoted: client.data.hasVoted,
-        isHost: client.data.isHost,
-        selectedCardValue: client.data.selectedCardValue,
-        connectionActive: client.data.connectionActive,
-      }))
-      console.log(players)
-
-      ws.subscribe(ws.data.channelId)
+      ws.subscribe(channelId)
 
       ws.send(
-        JSON.stringify({
-          channelId: ws.data.channelId,
-          playerName: ws.data.playerName,
-          playerId: ws.data.playerId,
+        formatWebSocketMessage({
+          channelId: channelId,
+          playerName: playerName,
+          playerId: playerId,
           isHost: ws.data.isHost,
-          players,
-          playerPoints: playerPoints[ws.data.channelId] || {},
-          isHidden: rooms.get(ws.data.channelId)?.pointsHidden,
+          players: room?.players,
+          playerPoints: playerPoints[channelId] || {},
+          isHidden: room?.pointsHidden,
         })
       )
       ws.publish(
-        ws.data.channelId,
-        JSON.stringify({
-          channelId: ws.data.channelId,
-          players,
-          playerPoints: playerPoints[ws.data.channelId] || {},
-          isHidden: rooms.get(ws.data.channelId)?.pointsHidden,
+        channelId,
+        formatWebSocketMessage({
+          channelId: channelId,
+          players: room?.players,
+          playerPoints: playerPoints[channelId] || {},
+          isHidden: room?.pointsHidden,
         })
       )
     },
@@ -183,10 +195,10 @@ const server = serve<SocketData>({
       console.log('Received pong from player ID:', ws.data.playerId)
     },
     message(ws, message) {
+      const { channelId, playerId, playerName, isHost } = ws.data
       const data = JSON.parse(message as string)
       console.log('Received incoming message: ', data)
-      let players
-      const room = rooms.get(ws.data.channelId)
+      const room = rooms.get(channelId)
       if (!room) return
 
       switch (data.type) {
@@ -194,10 +206,8 @@ const server = serve<SocketData>({
           console.log('changing point value')
           ws.data.hasVoted = true
           ws.data.selectedCardValue = data.payload.cardValue
-          playerPoints[ws.data.channelId] =
-            playerPoints[ws.data.channelId] || {}
-          playerPoints[ws.data.channelId][ws.data.playerId] =
-            data.payload.cardValue
+          playerPoints[channelId] = playerPoints[channelId] || {}
+          playerPoints[channelId][playerId] = data.payload.cardValue
           break
         case 'REVEAL_VOTES':
           console.log('revealing votes')
@@ -206,7 +216,7 @@ const server = serve<SocketData>({
         case 'RESET_VOTES':
           console.log('resetting votes')
           room.pointsHidden = true
-          playerPoints[ws.data.channelId] = {}
+          playerPoints[channelId] = {}
           room.players.forEach((client) => {
             client.data.hasVoted = false
             client.data.selectedCardValue = -1
@@ -217,7 +227,7 @@ const server = serve<SocketData>({
           room.players.forEach((client) => {
             client.data.isHost = client.data.playerId === data.payload.playerId
             client.send(
-              JSON.stringify({
+              formatWebSocketMessage({
                 isHost: client.data.isHost,
               })
             )
@@ -225,91 +235,82 @@ const server = serve<SocketData>({
           break
       }
 
-      players = Array.from(rooms.get(ws.data.channelId)?.players || []).map(
-        (client) => ({
-          playerId: client.data.playerId,
-          playerName: client.data.playerName,
-          hasVoted: client.data.hasVoted,
-          isHost: client.data.isHost,
-          selectedCardValue: client.data.selectedCardValue,
-          connectionActive: client.data.connectionActive,
-        })
-      )
-
       ws.send(
-        JSON.stringify({
-          channelId: ws.data.channelId,
-          playerName: ws.data.playerName,
-          playerId: ws.data.playerId,
+        formatWebSocketMessage({
+          channelId: channelId,
+          playerName: playerName,
+          playerId: playerId,
           isHost: ws.data.isHost,
-          players,
-          playerPoints: playerPoints[ws.data.channelId] || {},
-          isHidden: rooms.get(ws.data.channelId)?.pointsHidden,
+          players: room?.players,
+          playerPoints: playerPoints[channelId] || {},
+          isHidden: room?.pointsHidden,
         })
       )
       ws.publish(
-        ws.data.channelId,
-        JSON.stringify({
-          channelId: ws.data.channelId,
-          players,
-          playerPoints: playerPoints[ws.data.channelId] || {},
-          isHidden: rooms.get(ws.data.channelId)?.pointsHidden,
+        channelId,
+        formatWebSocketMessage({
+          channelId: channelId,
+          players: room?.players,
+          playerPoints: playerPoints[channelId] || {},
+          isHidden: room?.pointsHidden,
         })
       )
     },
     close(ws) {
-      console.log(`Closing WebSocket Connection with ${ws.data.playerId}`)
-      let players
+      const { channelId, playerId } = ws.data
+      const room = rooms.get(channelId)
+      console.log(`Closing WebSocket Connection with ${playerId}`)
       wsConnections.delete(ws)
       ws.data.connectionActive = false
+      if (ws.data.isHost) {
+        ws.data.isHost = false
+        room?.players.forEach((client) => {
+          if (client.data.playerId !== playerId) {
+            client.data.isHost = true
+            client.send(
+              formatWebSocketMessage({
+                isHost: client.data.isHost,
+              })
+            )
+            // server.publish(
+            //   channelId,
+            //   formatWebSocketMessage({
+            //     channelId: channelId,
+            //     players: room?.players,
+            //     playerPoints: playerPoints[channelId] || {},
+            //   })
+            // )
+            return
+          }
+        })
+      }
 
       ws.data.timeoutId = setTimeout(() => {
-        const room = rooms.get(ws.data.channelId)
-
         room?.players.delete(ws)
 
-        players = Array.from(room?.players || []).map((client) => ({
-          playerId: client.data.playerId,
-          playerName: client.data.playerName,
-          hasVoted: client.data.hasVoted,
-          isHost: client.data.isHost,
-          selectedCardValue: client.data.selectedCardValue,
-          connectionActive: client.data.connectionActive,
-        }))
-        console.log('players: ', players)
-
         if (room?.players.size === 0) {
-          console.log(`Deleting room ${ws.data.channelId}`)
-          rooms.delete(ws.data.channelId)
+          console.log(`Deleting room ${channelId}`)
+          rooms.delete(channelId)
           return
         }
 
-        ws.unsubscribe(ws.data.channelId)
+        ws.unsubscribe(channelId)
         server.publish(
-          ws.data.channelId,
-          JSON.stringify({
-            channelId: ws.data.channelId,
-            players,
-            playerPoints: playerPoints[ws.data.channelId] || {},
+          channelId,
+          formatWebSocketMessage({
+            channelId: channelId,
+            players: room?.players,
+            playerPoints: playerPoints[channelId] || {},
           })
         )
-      }, 45000)
-      players = Array.from(rooms.get(ws.data.channelId)?.players || []).map(
-        (client) => ({
-          playerId: client.data.playerId,
-          playerName: client.data.playerName,
-          hasVoted: client.data.hasVoted,
-          isHost: client.data.isHost,
-          selectedCardValue: client.data.selectedCardValue,
-          connectionActive: client.data.connectionActive,
-        })
-      )
+      }, 15000)
+
       server.publish(
-        ws.data.channelId,
-        JSON.stringify({
-          channelId: ws.data.channelId,
-          players,
-          playerPoints: playerPoints[ws.data.channelId] || {},
+        channelId,
+        formatWebSocketMessage({
+          channelId: channelId,
+          players: room?.players,
+          playerPoints: playerPoints[channelId] || {},
         })
       )
     },
