@@ -26,15 +26,13 @@ let wsConnections = new Set<ServerWebSocket<SocketData>>()
 let rooms = new Map<string, RoomData>()
 let playerPoints: Record<string, Record<string, number>> = {}
 
-function replacer(_: string, value: any) {
-  if (value instanceof Set) {
-    return Array.from(value).map((client) => client.data)
-  }
-  return value
-}
-
 function formatWebSocketMessage(data: any) {
-  return JSON.stringify(data, replacer)
+  return JSON.stringify(data, (_, value) => {
+    if (value instanceof Set) {
+      return Array.from(value).map((client) => client.data)
+    }
+    return value
+  })
 }
 
 function pingClient() {
@@ -262,7 +260,7 @@ const server = serve<SocketData>({
       console.log(`Closing WebSocket Connection with ${playerId}`)
       wsConnections.delete(ws)
       ws.data.connectionActive = false
-      if (ws.data.isHost) {
+      if (ws.data.isHost && room && room?.players?.size > 1) {
         ws.data.isHost = false
         room?.players.forEach((client) => {
           if (client.data.playerId !== playerId) {
@@ -272,14 +270,6 @@ const server = serve<SocketData>({
                 isHost: client.data.isHost,
               })
             )
-            // server.publish(
-            //   channelId,
-            //   formatWebSocketMessage({
-            //     channelId: channelId,
-            //     players: room?.players,
-            //     playerPoints: playerPoints[channelId] || {},
-            //   })
-            // )
             return
           }
         })

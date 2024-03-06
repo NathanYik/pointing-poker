@@ -1,40 +1,24 @@
-import { component$, $, noSerialize, useSignal } from '@builder.io/qwik'
-import { type DocumentHead, useNavigate } from '@builder.io/qwik-city'
-import { syncWebSocketData } from '~/lib/websocket'
-import { API_URL } from '~/lib/url'
+import { component$, $, useSignal } from '@builder.io/qwik'
+import { type DocumentHead } from '@builder.io/qwik-city'
 import styles from './index.module.css'
-import { usePointingPokerSession } from '~/hooks/usePointingPokerSession'
+import {
+  usePointingPokerSession,
+  useCreateWebSocketConnection,
+  useSyncLocalStorage,
+} from '~/hooks'
 
 export default component$(() => {
-  const nav = useNavigate()
   const store = usePointingPokerSession()
+  const createWebSocketConnection = useCreateWebSocketConnection()
   const input = useSignal('')
+  useSyncLocalStorage({ navigate: true })
 
   const handleSubmit = $(async () => {
     if (!input.value) return
-    const url = new URL(API_URL)
-    url.searchParams.set('playerName', input.value)
-    url.searchParams.set('connectionType', 'CREATE')
-    store.ws = noSerialize(new WebSocket(url))
-    store.channelId = ''
-
-    if (!store.ws) throw new Error('Failed to create websocket')
-    store.ws.onmessage = (event) => syncWebSocketData(store, event)
-
-    const intervalID = setInterval(() => {
-      if (store?.ws?.readyState === 1 && !store.error && store.channelId) {
-        clearInterval(intervalID)
-        console.log(localStorage)
-        window.localStorage.setItem(
-          store.channelId,
-          JSON.stringify({
-            channelId: store.channelId,
-            playerId: store.playerId,
-          })
-        )
-        nav(store.channelId)
-      }
-    }, 5)
+    createWebSocketConnection({
+      playerName: input.value,
+      connectionType: 'CREATE',
+    })
   })
 
   return (

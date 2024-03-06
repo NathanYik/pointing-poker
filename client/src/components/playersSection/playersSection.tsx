@@ -3,15 +3,17 @@ import styles from './playersSection.module.css'
 import { usePointingPokerSession } from '~/hooks/usePointingPokerSession'
 import CheckmarkIcon from '../checkmarkIcon/checkmarkIcon'
 import InProgressIcon from '../inProgressIcon/inProgressIcon'
-import { socketMessage } from '~/lib/websocket'
 import NoVoteIcon from '../noVoteIcon/noVoteIcon'
+import { useSendWebSocketMessage } from '~/hooks'
 
 export default component$(() => {
   const store = usePointingPokerSession()
+  const sendWebSocketMessage = useSendWebSocketMessage()
   const isHovering = useSignal<string | null>(null)
 
   return (
     <div class={styles['players-section']}>
+      {store.isHost && <p>Hover over a player to transfer host privileges</p>}
       <h3 class={styles['players-title']}>Players:</h3>
       <ul class={styles['players-list']}>
         {store.players?.map((player, index) => (
@@ -57,14 +59,10 @@ export default component$(() => {
                 class="hovering"
                 onClick$={() => {
                   isHovering.value = null
-                  store.ws?.send(
-                    socketMessage({
-                      type: 'CHANGE_HOST',
-                      payload: {
-                        playerId: player.playerId,
-                      },
-                    })
-                  )
+                  sendWebSocketMessage({
+                    type: 'CHANGE_HOST',
+                    payload: { playerId: player.playerId },
+                  })
                 }}
               >
                 Make Host
