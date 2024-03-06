@@ -293,7 +293,7 @@ const server = serve<SocketData>({
             playerPoints: playerPoints[channelId] || {},
           })
         )
-      }, 15000)
+      }, 900000)
 
       server.publish(
         channelId,
